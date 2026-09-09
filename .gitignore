@@ -16,3 +16,6 @@ types/
 
 .DS_Store.vscode/
 .vscode/
+
+# IDE-generated scratch config (VSCode Hardhat extension), timestamp-suffixed
+.vscode_hardhat_config_*.ts

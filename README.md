@@ -346,7 +346,7 @@ Para que os testes unitários funcionem localmente sem depender de conexões ext
 ## 🚀 Instalação e Execução Local
 
 ### Pré-requisitos
-*   Node.js (v18+ recommended)
+*   Node.js (v18+ recomendado)
 *   Carteira MetaMask configurada para a rede Sepolia
 
 ### 1. Configuração do Ambiente (Hardhat)

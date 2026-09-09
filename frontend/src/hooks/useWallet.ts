@@ -35,8 +35,8 @@ export function useWallet() {
     window.ethereum.on("accountsChanged", handleAccountsChanged);
 
     return () => {
-      window.ethereum.removeListener("chainChanged", handleChainChanged);
-      window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
+      window.ethereum?.removeListener("chainChanged", handleChainChanged);
+      window.ethereum?.removeListener("accountsChanged", handleAccountsChanged);
     };
   }, []);
 

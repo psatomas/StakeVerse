@@ -2,12 +2,47 @@ import { ethers } from "ethers";
 import hre from "hardhat";
 import "dotenv/config";
 
+const SEPOLIA_CHAIN_ID = 11155111n;
+
 async function main() {
   console.log("🚀 Deploying StakeVerse Protocol (governance-owned mode)\n");
 
-  const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL);
-  const wallet = new ethers.Wallet(process.env.SEPOLIA_PRIVATE_KEY!, provider);
+  // Fail loudly and immediately on missing configuration, rather than
+  // letting ethers silently substitute defaults. Most notably:
+  // `new ethers.JsonRpcProvider(undefined)` does NOT throw — it silently
+  // falls back to http://localhost:8545, which could deploy to an
+  // unintended local network with no indication anything was wrong.
+  if (!process.env.SEPOLIA_RPC_URL) {
+    throw new Error(
+      "SEPOLIA_RPC_URL is not set. Refusing to deploy: without an explicit " +
+        "RPC URL, ethers.JsonRpcProvider silently falls back to " +
+        "http://localhost:8545 instead of failing. Set SEPOLIA_RPC_URL in .env."
+    );
+  }
 
+  if (!process.env.SEPOLIA_PRIVATE_KEY) {
+    throw new Error(
+      "SEPOLIA_PRIVATE_KEY is not set. Refusing to deploy. Set it in .env."
+    );
+  }
+
+  const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL);
+  const wallet = new ethers.Wallet(process.env.SEPOLIA_PRIVATE_KEY, provider);
+
+  // Verify the LIVE network identity, not just the configured URL string —
+  // this is what actually makes an accidental mainnet (or any non-Sepolia)
+  // deployment impossible: even a misconfigured or unexpectedly-redirected
+  // RPC endpoint is caught here before any transaction is sent.
+  const network = await provider.getNetwork();
+  if (network.chainId !== SEPOLIA_CHAIN_ID) {
+    throw new Error(
+      `Refusing to deploy: connected network chainId is ${network.chainId}, ` +
+        `expected ${SEPOLIA_CHAIN_ID} (Sepolia). This script is scoped to ` +
+        "Sepolia only — it will not deploy to mainnet or any other network."
+    );
+  }
+
+  console.log("Network: Sepolia (chainId", network.chainId.toString() + ")");
   console.log("Deployer:", wallet.address);
 
   // Explicit, self-incrementing nonce for every transaction this script

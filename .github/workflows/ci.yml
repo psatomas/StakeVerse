@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  solidity:
+    name: Solidity (compile + test)
+    runs-on: ubuntu-latest
+    env:
+      # hardhat.config.ts eagerly validates networks.sepolia.url at
+      # config-load time, even for tasks that never touch the sepolia
+      # network (compile, test). This is a syntactically-valid placeholder
+      # only — it is never a real endpoint, never a secret, and no request
+      # is ever sent to it. CI must never require SEPOLIA_PRIVATE_KEY or a
+      # real SEPOLIA_RPC_URL, and does not here.
+      SEPOLIA_RPC_URL: "https://sepolia-placeholder.invalid"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies (deterministic)
+        run: npm ci
+
+      - name: Compile contracts
+        run: npx hardhat compile
+
+      - name: Run Solidity test suite
+        run: npx hardhat test
+
+  frontend:
+    name: Frontend (typecheck + build + lint)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies (deterministic)
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc -b
+
+      - name: Build
+        run: npx vite build
+
+      - name: Lint
+        # Non-blocking: this codebase carries 8 pre-existing lint findings
+        # (react-hooks/set-state-in-effect, no-explicit-any, an unused
+        # variable, missing `cause` on two re-thrown errors), reviewed and
+        # confirmed non-security-relevant in audit/SECURITY_AUDIT.md. They
+        # predate this CI setup and are out of scope to fix here — making
+        # this step blocking would leave the pipeline permanently red for
+        # reasons unrelated to any given change. Output still surfaces in
+        # the workflow log for visibility.
+        run: npm run lint
+        continue-on-error: true

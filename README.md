@@ -16,10 +16,10 @@ The **StakeVerse Protocol** is a decentralized, modular Web3 ecosystem developed
 
 The protocol addresses fragmentation and low participation in DAOs by mitigating opportunity costs through a circular and modular incentive ecosystem:
 *   **Integrated Tokenomics:** Users utilize the native utility token to lock in staking contracts and generate cyclical yields.
-*   **Exclusive Access (NFT Pass):** Staking and participation in governance layers require holding an exclusive NFT, which mitigates Sybil (impersonation) attacks and introduces programmed scarcity.
-*   **Active Governance:** Voting power is directly proportional to the staked token balance, completing the platform's utility cycle.
+*   **Membership NFT:** A DAO-issued ERC-721 credential (`StakeVerseNFT`) exists, but as of the current implementation it does **not** gate staking or governance participation, and issuance is uncapped/non-scarce — see "Known Documentation Gaps" below.
+*   **Active Governance:** Voting power comes from `StakeVerseToken`'s ERC20Votes delegation, snapshotted per proposal. It is independent of staking — staking a token carries no special voting weight, and an un-staked, delegated token votes exactly the same way.
 
-The protocol's security was validated using static analysis tools (*Slither* and *Mythril*), and deployment was successfully executed on the **Ethereum Sepolia** test network.
+The protocol went through a structured, multi-phase security remediation and verification process (staking accounting, governance/voting power, proposal quorum/threshold, Chainlink oracle validation, an emergency pause mechanism, ownership finalization to the DAO, and monetary/issuance policy review), evidenced by a 146-test automated regression suite. See [`audit/SECURITY_AUDIT.md`](audit/SECURITY_AUDIT.md) for the full findings record. An earlier, pre-remediation version of these contracts was deployed to the **Ethereum Sepolia** test network — see the Deployment section below for why those addresses no longer reflect the current source code.
 
 ---
 
@@ -64,15 +64,23 @@ The protocol's security was validated using static analysis tools (*Slither* and
 │   └── sepolia.json
 ├── frontend/               # Web Application (React + TypeScript + Vite + Tailwind)
 │   ├── src/
-│   │   ├── components/     # UI Components (Cards, Modals)
-│   │   ├── hooks/          # useWallet.ts and useDashboard.ts
+│   │   ├── components/     # UI Components (dashboard/, governance/, staking/, layout/)
+│   │   ├── contracts/      # Per-contract ethers.js bindings + abis/
+│   │   ├── hooks/          # useWallet, useDashboard, useGovernance, useVotingPower, useOracle
 │   │   ├── services/       # Web3 provider abstraction (ethers.js v6)
-│   │   └── types/          # TypeScript typings for smart contracts
+│   │   └── utils/          # txError, calldata decoding for governance proposals
 ├── scripts/                # Compilation and deployment scripts (Hardhat v3)
 │   └── deploy.ts
-└── test/                   # Local unit tests (Mocha/Chai)
+└── test/                   # Local unit tests (Mocha/Chai) — 9 files, 146 tests
     ├── dao.test.ts
-    └── staking.test.ts
+    ├── staking.test.ts
+    ├── token.test.ts
+    ├── nft.test.ts
+    ├── oracle.test.ts
+    ├── governance-integration.test.ts
+    ├── ownership-finalization.test.ts
+    ├── token-monetary-policy.test.ts
+    └── nft-issuance-policy.test.ts
 ```
 
 ---
@@ -85,21 +93,24 @@ The core modules of the protocol are validated by a unit testing suite built usi
 *   **EVM Time Simulation:** The governance test suite (`dao.test.ts`) simulates live voting lifetimes by triggering low-level client JSON-RPC commands: `evm_increaseTime` to advance the Unix timestamp past deadlines, and `evm_mine` to forge a new block, ensuring execution rules are enforced correctly.
 
 ### 📊 Automated Code Coverage Report
-The testing infrastructure has achieved a flawless **100% Code Coverage** across all files, functions, lines, and statement branches, guaranteeing that no logical or edge-case path goes unvalidated.
+Regenerated with Hardhat's own `--coverage` flag (not a third-party plugin) against the current source. Every production contract sits at **100% line/statement coverage**; the sub-100% total is entirely the test-only `MockV3Aggregator` mock, whose unused setter branches aren't exercised by every test — see `audit/hardhat_coverage.txt` for the full, reproducible output (`npx hardhat test --coverage`).
 
 ```text
-----------------------------|----------|----------|----------|----------|
-File                        | % Stmts  | % Branch | % Funcs  | % Lines  |
-----------------------------|----------|----------|----------|----------|
- contracts/                 |      100 |      100 |      100 |      100 |
-  PriceOracleConsumer.sol   |      100 |      100 |      100 |      100 |
-  StakeVerseDAO.sol         |      100 |      100 |      100 |      100 |
-  StakeVerseNFT.sol         |      100 |      100 |      100 |      100 |
-  StakeVerseStaking.sol     |      100 |      100 |      100 |      100 |
-  StakeVerseToken.sol       |      100 |      100 |      100 |      100 |
-----------------------------|----------|----------|----------|----------|
-All files                   |      100 |      100 |      100 |      100 |
-----------------------------|----------|----------|----------|----------|
+╔═════════════════════════════════════════════════════════════════════════════╗
+║ File Coverage                                                               ║
+╟────────────────────────────────────┬────────┬─────────────┬─────────────────╢
+║ File Path                          │ Line % │ Statement % │ Uncovered Lines ║
+╟────────────────────────────────────┼────────┼─────────────┼─────────────────╢
+║ contracts/PriceOracleConsumer.sol  │ 100.00 │ 100.00      │ -               ║
+║ contracts/MockGovernanceTarget.sol │ 100.00 │ 100.00      │ -               ║
+║ contracts/MockV3Aggregator.sol     │  78.57 │  78.57      │ 48, 62, 74      ║
+║ contracts/StakeVerseDAO.sol        │ 100.00 │ 100.00      │ -               ║
+║ contracts/StakeVerseStaking.sol    │ 100.00 │ 100.00      │ -               ║
+║ contracts/StakeVerseNFT.sol        │ 100.00 │ 100.00      │ -               ║
+║ contracts/StakeVerseToken.sol      │ 100.00 │ 100.00      │ -               ║
+╟────────────────────────────────────┼────────┼─────────────┼─────────────────╢
+║ Total                              │  98.10 │  97.67      │                 ║
+╚════════════════════════════════════╧════════╧═════════════╧═════════════════╝
 ```
 
 ---
@@ -107,27 +118,28 @@ All files                   |      100 |      100 |      100 |      100 |
 ## ⛓️ Testing Strategy & Oracle Mocking
 
 ### 🇺🇸 Oracle Mocking Mechanism (Local Environment)
-To run unit tests locally without external dependencies or internet connection to the Sepolia network, we implemented a **Mocking** pattern:
-*   **Contract Used:** `MockV3Aggregator.sol` (located under `contracts/`).
-*   **How it Works:** During local development network deployments (`hardhat`), the script detects the environment and deploys this Mock contract instead of pointing to a live Chainlink registry address, perfectly mimicking Chainlink's `AggregatorV3Interface`.
-*   **Objective:** This allows the test suite to artificially manipulate asset prices (via the `updateAnswer` function), verifying how the protocol handles market volatility in a 100% isolated, local, and offline manner.
+To run unit tests locally without external dependencies or an internet connection to Sepolia, `test/oracle.test.ts` uses a **Mocking** pattern:
+*   **Contract Used:** `MockV3Aggregator.sol` (located under `contracts/`, test-only — never deployed by `scripts/deploy.ts`, which always targets the real feed at `CHAINLINK_PRICE_FEED` regardless of network).
+*   **How it Works:** Test files deploy `MockV3Aggregator` directly and point `PriceOracleConsumer` at it, mimicking Chainlink's `AggregatorV3Interface`. The mock exposes individually-settable `setAnswer`, `setRoundId`, `setUpdatedAt`, `setAnsweredInRound`, and `setDecimals` functions (there is no single `updateAnswer` function).
+*   **Objective:** This lets the test suite independently control every field `PriceOracleConsumer`'s hardened validation inspects — price, round completeness, staleness, and future-timestamp rejection — in a 100% isolated, deterministic, offline manner (EVM time is advanced explicitly via `evm_increaseTime`/`evm_mine`, never wall-clock timing).
 
 ---
 
 ## 🔒 Security and Smart Contract Auditing
 
-The protocol was secured following smart contract development best practices, OWASP Web3 guidelines, and checked using formal symbolic execution and static analysis.
+**Note on this section's history:** earlier versions of this README cited specific Slither/Mythril findings (including a reference to a `withdraw` function this codebase has never had) that could not be verified as genuine tool output against this repository and were removed rather than repeated. The current security record is a structured, 9-phase manual/AI-assisted remediation and verification process — not a claim of automated static-analysis certification.
 
-### 🛡️ Mythril Security Report (Symbolic Execution)
-Deep Scan Symbolic Execution completed successfully with clean results:
-*   **Integer Underflow/Overflow:** PASS (Solidity 0.8.x native checked arithmetic).
-*   **Reentrancy/State Changes:** PASS (Protected by OpenZeppelin's `ReentrancyGuard` on `withdraw` and `claimRewards` functions, strictly following the *Checks-Effects-Interactions* pattern).
-*   **Environmental Dependence:** PASS (No risky environment dependencies detected).
+*   **Full findings record:** [`audit/SECURITY_AUDIT.md`](audit/SECURITY_AUDIT.md) — executive summary, resolved issues with evidence, accepted design risks, and documentation gaps.
+*   **Verifiable evidence:** 146/146 passing tests (`npx hardhat test`), 100% line coverage on every production contract (`npx hardhat test --coverage`, raw output in `audit/hardhat_coverage.txt`), zero compiler warnings.
+*   **Centralization risk (resolved):** `Token`, `Staking`, `NFT`, and the `DAO` itself are now all owned by `StakeVerseDAO` — not the deployer. See `audit/SECURITY_AUDIT.md` for the ownership-finalization evidence.
+*   No third-party static-analysis (Slither/Mythril) or external audit firm has reviewed this codebase; none of the tooling in `audit/` was actually executable in the environment this remediation work was performed in.
 
-### 🔍 Slither Analysis (Static Analysis)
-*   **Critical / High Issues:** 0 Found
-*   **Medium Issues:** 1 Found (Centralization Risk / `pwnable-ownership`)
-    *   *Mitigation:* This structure is intentional for the MVP stage. Contract ownership will be transferred completely to the `StakeVerseDAO` contract upon full production deployment to decentralize operational control.
+---
+
+## 📋 Known Documentation Gaps
+
+* **The NFT does not gate anything.** `StakeVerseNFT` is a DAO-mintable ERC-721 with no supply cap and no per-address limit. Neither `StakeVerseStaking.stake()` nor `StakeVerseDAO`'s voting/proposal functions check NFT ownership. The "exclusive access" / "Sybil mitigation" / "programmed scarcity" framing in earlier versions of this document was aspirational, not implemented — it would require deliberately adding gating logic to Staking and/or the DAO, which has not been done.
+* **Voting power is not proportional to staked balance.** Governance weight comes entirely from `StakeVerseToken`'s ERC20Votes delegation. Staking and governance are independent systems in this codebase.
 
 ---
 
@@ -173,6 +185,8 @@ npm run dev
 
 ## 🌐 Deployment & Deliverables (Sepolia Testnet)
 
+⚠️ **These addresses predate the security remediation process** described above and in `audit/SECURITY_AUDIT.md` (hardened staking accounting, ERC20Votes governance, quorum/threshold, oracle validation, the emergency pause, DAO ownership finalization). **The bytecode live at these addresses does not match the current contract source in this repository.** The current, hardened source has not been redeployed to Sepolia — see `deployment/sepolia.json`'s own `status` field. Treat the links below as a historical reference only, not as the current, audited protocol.
+
 The contracts were successfully deployed to the **Ethereum Sepolia Network (Chain ID: 11155111)**. Generated on-chain artifacts and addresses are mapped and stored in `/deployment/sepolia.json`.
 
 ### 🔍 Explorer Quick Links (Blockscout)
@@ -194,10 +208,10 @@ O **StakeVerse Protocol** é um ecossistema Web3 descentralizado e modular desen
 
 O protocolo resolve o problema da fragmentação e da baixa participação em DAOs ao mitigar o custo de oportunidade por meio de um ecossistema de incentivos circular e modular:
 *   **Tokenomics Integrado:** Usuários utilizam o token utilitário nativo para travar em contratos de staking e gerar rendimento cíclico.
-*   **Acesso Exclusivo (NFT Pass):** O staking e a participação na governança exigem a posse de um NFT exclusivo, mitigando ataques Sybil (personificação) e gerando escassez programada.
-*   **Governança Ativa:** O poder de voto é proporcional ao saldo de tokens integrados, fechando o ciclo de utilidade da plataforma.
+*   **NFT de Membership:** Existe uma credencial ERC-721 emitida pela DAO (`StakeVerseNFT`), mas, na implementação atual, ela **não** condiciona o staking nem a participação na governança, e a emissão não possui limite/escassez — ver "Lacunas de Documentação Conhecidas" abaixo.
+*   **Governança Ativa:** O poder de voto vem da delegação ERC20Votes do `StakeVerseToken`, com snapshot por proposta. É independente do staking — travar um token em staking não concede peso de voto especial, e um token não travado, porém delegado, vota exatamente da mesma forma.
 
-A segurança do protocolo foi validada por ferramentas de análise estática (*Slither* e *Mythril*) e o deploy foi realizado com sucesso na rede de testes **Ethereum Sepolia**.
+O protocolo passou por um processo estruturado e multifásico de remediação e verificação de segurança (contabilidade de staking, poder de voto/governança, quórum/limiar de propostas, validação do oráculo Chainlink, mecanismo de pausa de emergência, finalização da propriedade para a DAO e revisão da política monetária/de emissão), evidenciado por uma suíte de regressão automatizada com 146 testes. Veja [`audit/SECURITY_AUDIT.md`](audit/SECURITY_AUDIT.md) para o registro completo de achados. Uma versão anterior, pré-remediação, destes contratos foi implantada na rede de testes **Ethereum Sepolia** — veja a seção de Deploy abaixo para entender por que esses endereços não refletem mais o código-fonte atual.
 
 ---
 
@@ -242,15 +256,23 @@ A segurança do protocolo foi validada por ferramentas de análise estática (*S
 │   └── sepolia.json
 ├── frontend/               # Aplicação Web (React + TypeScript + Vite + Tailwind)
 │   ├── src/
-│   │   ├── components/     # Componentes visuais isolados (Cards, Modais)
-│   │   ├── hooks/          # Hooks customizados (useWallet, useDashboard)
+│   │   ├── components/     # Componentes de UI (dashboard/, governance/, staking/, layout/)
+│   │   ├── contracts/      # Bindings ethers.js por contrato + abis/
+│   │   ├── hooks/          # useWallet, useDashboard, useGovernance, useVotingPower, useOracle
 │   │   ├── services/       # Abstração do provedor Web3 via ethers.js v6
-│   │   └── types/          # Tipagens TypeScript para os contratos
+│   │   └── utils/          # txError, decodificação de calldata de propostas de governança
 ├── scripts/                # Scripts de compilação e deploy (Hardhat v3)
 │   └── deploy.ts
-└── test/                   # Testes unitários locais (Mocha/Chai)
+└── test/                   # Testes unitários locais (Mocha/Chai) — 9 arquivos, 146 testes
     ├── dao.test.ts
-    └── staking.test.ts
+    ├── staking.test.ts
+    ├── token.test.ts
+    ├── nft.test.ts
+    ├── oracle.test.ts
+    ├── governance-integration.test.ts
+    ├── ownership-finalization.test.ts
+    ├── token-monetary-policy.test.ts
+    └── nft-issuance-policy.test.ts
 ```
 
 ---
@@ -263,21 +285,24 @@ Os módulos principais do protocolo são validados por uma suíte completa de te
 *   **Simulação de Passagem de Tempo na EVM:** A suíte de testes de governança (`dao.test.ts`) simula os prazos de vigência das propostas enviando comandos JSON-RPC de baixo nível ao cliente local: `evm_increaseTime` para avançar o relógio Unix e `evm_mine` para forçar a criação de um bloco subsequente, garantindo o teste preciso das regras de expiração.
 
 ### 📊 Relatório Automatizado de Cobertura (Code Coverage)
-A infraestrutura de testes atingiu a marca histórica de **100% de Cobertura de Código** em todas as funções, declarações, linhas e ramificações de arquivos, assegurando que nenhuma regra de negócio ou fluxo de exceção ficasse desprotegido.
+Regenerado com a flag nativa `--coverage` do Hardhat (não um plugin de terceiros) contra o código-fonte atual. Todo contrato de produção está em **100% de cobertura de linhas/statements**; o total abaixo de 100% vem inteiramente do mock de teste `MockV3Aggregator`, cujos setters não utilizados não são exercitados por todos os testes — veja `audit/hardhat_coverage.txt` para a saída completa e reproduzível (`npx hardhat test --coverage`).
 
 ```text
-----------------------------|----------|----------|----------|----------|
-File                        | % Stmts  | % Branch | % Funcs  | % Lines  |
-----------------------------|----------|----------|----------|----------|
- contracts/                 |      100 |      100 |      100 |      100 |
-  PriceOracleConsumer.sol   |      100 |      100 |      100 |      100 |
-  StakeVerseDAO.sol         |      100 |      100 |      100 |      100 |
-  StakeVerseNFT.sol         |      100 |      100 |      100 |      100 |
-  StakeVerseStaking.sol     |      100 |      100 |      100 |      100 |
-  StakeVerseToken.sol       |      100 |      100 |      100 |      100 |
-----------------------------|----------|----------|----------|----------|
-All files                   |      100 |      100 |      100 |      100 |
-----------------------------|----------|----------|----------|----------|
+╔═════════════════════════════════════════════════════════════════════════════╗
+║ File Coverage                                                               ║
+╟────────────────────────────────────┬────────┬─────────────┬─────────────────╢
+║ File Path                          │ Line % │ Statement % │ Uncovered Lines ║
+╟────────────────────────────────────┼────────┼─────────────┼─────────────────╢
+║ contracts/PriceOracleConsumer.sol  │ 100.00 │ 100.00      │ -               ║
+║ contracts/MockGovernanceTarget.sol │ 100.00 │ 100.00      │ -               ║
+║ contracts/MockV3Aggregator.sol     │  78.57 │  78.57      │ 48, 62, 74      ║
+║ contracts/StakeVerseDAO.sol        │ 100.00 │ 100.00      │ -               ║
+║ contracts/StakeVerseStaking.sol    │ 100.00 │ 100.00      │ -               ║
+║ contracts/StakeVerseNFT.sol        │ 100.00 │ 100.00      │ -               ║
+║ contracts/StakeVerseToken.sol      │ 100.00 │ 100.00      │ -               ║
+╟────────────────────────────────────┼────────┼─────────────┼─────────────────╢
+║ Total                              │  98.10 │  97.67      │                 ║
+╚════════════════════════════════════╧════════╧═════════════╧═════════════════╝
 ```
 
 ---
@@ -285,27 +310,28 @@ All files                   |      100 |      100 |      100 |      100 |
 ## ⛓️ Estratégia de Testes Local vs. Testnet (Oráculos)
 
 ### 🇧🇷 Mecanismo de Mocking para Oráculo (Ambiente Local)
-Para que os testes unitários funcionem localmente via Hardhat sem depender de conexões externas ou internet ativa com a rede Sepolia, implementamos o padrão de **Mocking**:
-*   **Contrato Utilizado:** `MockV3Aggregator.sol` (localizado diretamente na pasta `contracts/`).
-*   **Como Funciona:** Durante o deploy em ambiente de desenvolvimento local (`hardhat`), o script de automação detecta a rede e implanta este contrato Mock ao invés de apontar para o agregador real da rede pública, emulando perfeitamente a interface `AggregatorV3Interface` da Chainlink.
-*   **Objetivo:** Isso permite que a suíte de testes manipule o preço do ativo artificialmente (via função `updateAnswer`), testando como o protocolo reage a flutuações severas de mercado de forma 100% isolada, determinística e offline.
+Para que os testes unitários funcionem localmente sem depender de conexões externas ou internet ativa com a rede Sepolia, `test/oracle.test.ts` usa um padrão de **Mocking**:
+*   **Contrato Utilizado:** `MockV3Aggregator.sol` (localizado em `contracts/`, exclusivo para testes — nunca implantado por `scripts/deploy.ts`, que sempre aponta para o feed real em `CHAINLINK_PRICE_FEED`, independentemente da rede).
+*   **Como Funciona:** Os arquivos de teste implantam `MockV3Aggregator` diretamente e apontam o `PriceOracleConsumer` para ele, emulando a interface `AggregatorV3Interface` da Chainlink. O mock expõe funções individuais `setAnswer`, `setRoundId`, `setUpdatedAt`, `setAnsweredInRound` e `setDecimals` (não existe uma única função `updateAnswer`).
+*   **Objetivo:** Isso permite que a suíte de testes controle independentemente cada campo verificado pela validação reforçada do `PriceOracleConsumer` — preço, integridade da rodada, obsolescência (staleness) e rejeição de timestamp futuro — de forma 100% isolada, determinística e offline (o tempo da EVM é avançado explicitamente via `evm_increaseTime`/`evm_mine`, nunca por tempo de relógio real).
 
 ---
 
 ## 🔒 Segurança e Relatório de Auditoria (Smart Contracts)
 
-O protocolo foi blindado seguindo os padrões de desenvolvimento seguro, diretrizes do OWASP Web3 e verificado via execução simbólica e análise estática avançada.
+**Nota sobre o histórico desta seção:** versões anteriores deste README citavam achados específicos de Slither/Mythril (incluindo uma referência a uma função `withdraw` que este código nunca teve) que não puderam ser verificados como saída genuína de ferramentas contra este repositório, e foram removidos em vez de repetidos. O registro de segurança atual é um processo estruturado de remediação e verificação em 9 fases, manual/assistido por IA — não uma alegação de certificação por análise estática automatizada.
 
-### 🛡️ Relatório de Segurança Mythril (Execução Simbólica)
-A análise profunda de execução simbólica foi finalizada com sucesso e obteve parâmetros limpos:
-*   **Integer Underflow/Overflow:** PASS (Proteção nativa via verificação aritmética do Solidity 0.8.x).
-*   **Reentrancy/Alteração de Estado:** PASS (Proteção via modificadores `ReentrancyGuard` da OpenZeppelin nas funções de saque e resgate de recompensas, em total conformidade com o padrão *Checks-Effects-Interactions*).
-*   **Dependência Ambiental:** PASS (Nenhuma dependência vulnerável de variáveis previsíveis de bloco detectada).
+*   **Registro completo de achados:** [`audit/SECURITY_AUDIT.md`](audit/SECURITY_AUDIT.md) — resumo executivo, problemas resolvidos com evidências, riscos de design aceitos e lacunas de documentação.
+*   **Evidência verificável:** 146/146 testes passando (`npx hardhat test`), 100% de cobertura de linhas em todo contrato de produção (`npx hardhat test --coverage`, saída bruta em `audit/hardhat_coverage.txt`), zero warnings de compilação.
+*   **Risco de centralização (resolvido):** `Token`, `Staking`, `NFT` e a própria `DAO` agora pertencem à `StakeVerseDAO` — não ao deployer. Veja `audit/SECURITY_AUDIT.md` para a evidência da finalização da propriedade.
+*   Nenhuma análise estática de terceiros (Slither/Mythril) ou auditoria externa revisou este código; as ferramentas antes referenciadas em `audit/` não eram de fato executáveis no ambiente onde este trabalho de remediação foi realizado.
 
-### 🔍 Análise de Vulnerabilidades Slither (Análise Estática)
-*   **Problemas Críticos / Altos:** 0 Encontrados
-*   **Problemas Médios:** 1 Encontrado (Centralization Risk / `pwnable-ownership`)
-    *   *Mitigação:* Estrutura intencional para a fase de MVP. A administração (ownership) dos contratos será transferida inteiramente para o endereço do `StakeVerseDAO` no deploy definitivo em produção, descentralizando as permissões operacionais.
+---
+
+## 📋 Lacunas de Documentação Conhecidas
+
+* **O NFT não condiciona nada.** `StakeVerseNFT` é um ERC-721 mintável pela DAO, sem limite de supply e sem limite por endereço. Nem `StakeVerseStaking.stake()` nem as funções de voto/proposta da `StakeVerseDAO` verificam a posse do NFT. O enquadramento de "acesso exclusivo" / "mitigação de Sybil" / "escassez programada" em versões anteriores deste documento era aspiracional, não implementado — exigiria adicionar deliberadamente lógica de restrição ao Staking e/ou à DAO, o que não foi feito.
+* **O poder de voto não é proporcional ao saldo em staking.** O peso de governança vem inteiramente da delegação ERC20Votes do `StakeVerseToken`. Staking e governança são sistemas independentes neste código.
 
 ---
 
@@ -350,6 +376,8 @@ npm run dev
 ---
 
 ## 🌐 Detalhes do Deploy e Entregáveis (Sepolia Testnet)
+
+⚠️ **Estes endereços são anteriores ao processo de remediação de segurança** descrito acima e em `audit/SECURITY_AUDIT.md` (contabilidade de staking reforçada, governança ERC20Votes, quórum/limiar, validação de oráculo, pausa de emergência, finalização da propriedade para a DAO). **O bytecode nesses endereços não corresponde ao código-fonte atual deste repositório.** O código-fonte atual, já reforçado, não foi reimplantado na Sepolia — veja o campo `status` no próprio `deployment/sepolia.json`. Trate os links abaixo apenas como referência histórica, não como o protocolo atual e auditado.
 
 Os contratos foram implantados com sucesso na rede **Ethereum Sepolia (Chain ID: 11155111)**. Os artefatos e endereços on-chain gerados foram mapeados e compartilhados publicamente no explorador.
 

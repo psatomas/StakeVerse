@@ -1,14 +1,24 @@
-==== Mythril Analysis Report ====
-Target Contract: StakeVerseStaking.sol
-Execution Mode: Symbolic Execution (Deep Scan Mode)
-Max Depth: 22
+CORRECTED — this file previously claimed specific Mythril findings for
+StakeVerseStaking.sol, including a reference to a function named `withdraw`
+protected by `nonReentrant`. StakeVerseStaking.sol has never had a function
+named `withdraw` (the withdrawal function has always been named `unstake`).
+This is direct evidence the original content did not describe a genuine
+analysis run against this repository, and it has been replaced rather than
+repeated.
 
-The analysis passed successfully. No assertion failures, integer overflows, or execution tracking traps were triggered under symbolic execution conditions.
+No `myth` binary was available in the environment this remediation work
+(a 9-phase, structured security review — see audit/SECURITY_AUDIT.md) was
+performed in, so no automated symbolic-execution report — from Mythril or
+any other tool — can be honestly presented here as having been run against
+this codebase.
 
-----------------------------------------------------------------------
-Inference Results:
-- Checked for Integer Underflow/Overflow: PASS (Protected natively by Solidity 0.8.x checked arithmetic)
-- Checked for State Change after External Call: PASS (Protected by 'nonReentrant' modifiers and CEI pattern)
-- Checked for Dependence on predictable environment variables: PASS
+For the actual, verifiable security record for StakeVerseStaking.sol —
+including the reentrancy/CEI review, the reward-accounting fix, and the
+pause-mechanism review — see:
 
-No high or medium severity vulnerabilities detected in StakeVerseStaking.sol.
+    audit/SECURITY_AUDIT.md
+
+and the staking-specific regression suite:
+
+    test/staking.test.ts            (23 tests)
+    test/ownership-finalization.test.ts  (Step 6 pause-via-governance tests)

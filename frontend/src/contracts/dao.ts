@@ -2,9 +2,10 @@ import { Contract, formatEther, parseEther, ZeroAddress } from "ethers";
 
 import DAO_ARTIFACT from "./abis/StakeVerseDAO.json";
 
+import { CONTRACTS } from "./index";
 import { getSigner } from "../services/web3";
 
-const DAO_ADDRESS = import.meta.env.VITE_DAO_ADDRESS;
+const DAO_ADDRESS = CONTRACTS.dao;
 
 export const ZERO_ADDRESS = ZeroAddress;
 

@@ -1,0 +1,246 @@
+name: Deploy to Sepolia
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_deployment:
+        description: "Type DEPLOY_SEPOLIA to confirm — this sends real transactions to Sepolia testnet"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy StakeVerse to Sepolia
+    runs-on: ubuntu-latest
+    steps:
+      # Fail fast, before checkout or any dependency install, if the
+      # operator didn't type the exact confirmation string. This is an
+      # additional safety layer on top of (not a replacement for)
+      # scripts/deploy.ts's own live chain-ID check below.
+      - name: Verify manual confirmation
+        run: |
+          if [ "${{ inputs.confirm_deployment }}" != "DEPLOY_SEPOLIA" ]; then
+            echo "::error::confirm_deployment must be exactly 'DEPLOY_SEPOLIA'. Refusing to deploy."
+            exit 1
+          fi
+          echo "Confirmation accepted."
+
+      # Explicit, workflow-level sanity check against the SEPOLIA_CHAIN_ID
+      # repository variable, independent of scripts/deploy.ts's own runtime
+      # check. Catches a misconfigured variable before spending any time on
+      # install/compile/test.
+      - name: Verify expected chain ID configuration
+        run: |
+          if [ "${{ vars.SEPOLIA_CHAIN_ID }}" != "11155111" ]; then
+            echo "::error::vars.SEPOLIA_CHAIN_ID is '${{ vars.SEPOLIA_CHAIN_ID }}', expected '11155111' (Sepolia). Refusing to deploy."
+            exit 1
+          fi
+          echo "Target confirmed: Sepolia (chainId 11155111)."
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies (deterministic)
+        run: npm ci
+
+      - name: Compile contracts
+        env:
+          # hardhat.config.ts eagerly validates networks.sepolia.url at
+          # config-load time. The real secret is used here (this workflow
+          # legitimately has it) but SEPOLIA_PRIVATE_KEY is deliberately
+          # NOT exposed to this step — hardhat.config.ts falls back to an
+          # empty accounts list when it's absent, which is a valid config,
+          # and compilation never needs to sign anything.
+          SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL }}
+        run: npx hardhat compile
+
+      - name: Run full Solidity test suite (must pass before any deployment)
+        env:
+          SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL }}
+        run: npx hardhat test
+
+      # Uses the existing, hardened scripts/deploy.ts exactly as committed —
+      # not rewritten or forked. Its own safety checks (SEPOLIA_RPC_URL /
+      # SEPOLIA_PRIVATE_KEY presence, and a LIVE chainId == 11155111 check
+      # performed against the real network before any transaction is sent)
+      # are preserved and still the authoritative guard. Output is both
+      # streamed to the job log and captured to a file so later steps can
+      # recover the deployed addresses without needing deploy.ts to change
+      # its output format.
+      - name: Deploy to Sepolia (scripts/deploy.ts)
+        id: deploy
+        env:
+          SEPOLIA_PRIVATE_KEY: ${{ secrets.SEPOLIA_PRIVATE_KEY }}
+          SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL }}
+          CHAINLINK_PRICE_FEED: ${{ vars.CHAINLINK_PRICE_FEED }}
+        run: |
+          set -o pipefail
+          npx hardhat run scripts/deploy.ts 2>&1 | tee deploy-output.log
+
+      # scripts/deploy.ts prints each address on its own "Name: 0x..." line
+      # (never the private key — confirmed by inspection). Parsed here
+      # rather than by changing the script's output format.
+      - name: Extract deployed addresses
+        id: addresses
+        run: |
+          set -euo pipefail
+          TOKEN=$(grep -oP '^Token: \K0x[a-fA-F0-9]{40}' deploy-output.log | tail -1)
+          DAO=$(grep -oP '^DAO: \K0x[a-fA-F0-9]{40}' deploy-output.log | tail -1)
+          STAKING=$(grep -oP '^Staking: \K0x[a-fA-F0-9]{40}' deploy-output.log | tail -1)
+          NFT=$(grep -oP '^NFT: \K0x[a-fA-F0-9]{40}' deploy-output.log | tail -1)
+          ORACLE=$(grep -oP '^Oracle: \K0x[a-fA-F0-9]{40}' deploy-output.log | tail -1)
+          DEPLOYER=$(grep -oP '^Deployer: \K0x[a-fA-F0-9]{40}' deploy-output.log | tail -1)
+
+          for name_value in "Token:$TOKEN" "DAO:$DAO" "Staking:$STAKING" "NFT:$NFT" "Oracle:$ORACLE" "Deployer:$DEPLOYER"; do
+            if [ -z "${name_value#*:}" ]; then
+              echo "::error::Could not parse ${name_value%%:*} address from deployment output."
+              exit 1
+            fi
+          done
+
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+          echo "dao=$DAO" >> "$GITHUB_OUTPUT"
+          echo "staking=$STAKING" >> "$GITHUB_OUTPUT"
+          echo "nft=$NFT" >> "$GITHUB_OUTPUT"
+          echo "oracle=$ORACLE" >> "$GITHUB_OUTPUT"
+          echo "deployer=$DEPLOYER" >> "$GITHUB_OUTPUT"
+
+      # Independent re-verification — does not trust scripts/deploy.ts's own
+      # internal assertions alone (defense in depth: it already verifies
+      # ownership itself and aborts on failure, but this step queries the
+      # live chain fresh, from outside that process). Never prints
+      # SEPOLIA_PRIVATE_KEY; this script never even receives it as an env
+      # var. Written to a runner-local .cjs file (not committed) to force
+      # CommonJS regardless of this repo's "type": "module".
+      - name: Post-deployment verification
+        env:
+          SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL }}
+          TOKEN_ADDRESS: ${{ steps.addresses.outputs.token }}
+          DAO_ADDRESS: ${{ steps.addresses.outputs.dao }}
+          STAKING_ADDRESS: ${{ steps.addresses.outputs.staking }}
+          NFT_ADDRESS: ${{ steps.addresses.outputs.nft }}
+          ORACLE_ADDRESS: ${{ steps.addresses.outputs.oracle }}
+        run: |
+          cat > verify-deployment.cjs <<'EOF'
+          const { JsonRpcProvider, Contract } = require("ethers");
+
+          async function main() {
+            const provider = new JsonRpcProvider(process.env.SEPOLIA_RPC_URL);
+
+            const network = await provider.getNetwork();
+            if (network.chainId !== 11155111n) {
+              throw new Error(
+                `Live chainId is ${network.chainId}, expected 11155111. Deployment verification aborted.`
+              );
+            }
+            console.log(`✓ Connected network chainId == 11155111 (Sepolia)`);
+
+            const addresses = {
+              Token: process.env.TOKEN_ADDRESS,
+              DAO: process.env.DAO_ADDRESS,
+              Staking: process.env.STAKING_ADDRESS,
+              NFT: process.env.NFT_ADDRESS,
+              Oracle: process.env.ORACLE_ADDRESS,
+            };
+
+            for (const [name, address] of Object.entries(addresses)) {
+              const code = await provider.getCode(address);
+              if (code === "0x") {
+                throw new Error(`No contract code found at ${name} (${address}).`);
+              }
+              console.log(`✓ ${name} (${address}) has deployed code`);
+            }
+
+            const ownerAbi = ["function owner() view returns (address)"];
+            const daoAddress = addresses.DAO;
+
+            for (const name of ["Token", "Staking", "NFT", "DAO"]) {
+              const contract = new Contract(addresses[name], ownerAbi, provider);
+              const owner = await contract.owner();
+              if (owner.toLowerCase() !== daoAddress.toLowerCase()) {
+                throw new Error(
+                  `${name}.owner() is ${owner}, expected the DAO (${daoAddress}).`
+                );
+              }
+              console.log(`✓ ${name}.owner() == DAO`);
+            }
+
+            console.log("\nAll post-deployment verification checks passed.");
+          }
+
+          main().catch((e) => {
+            console.error("Post-deployment verification FAILED:", e.message || e);
+            process.exit(1);
+          });
+          EOF
+          node verify-deployment.cjs
+
+      # Records what this run deployed — surfaced in the job summary and as
+      # a downloadable artifact, deliberately NOT committed back to the
+      # repository automatically (this workflow keeps `contents: read`
+      # only; see the CD README note on why). Integrating this into
+      # deployment/sepolia.json (which already carries its own explicit
+      # "status" field marking its current contents as a stale,
+      # pre-remediation record) is a separate, reviewed commit — the same
+      # pattern already used for frontend address integration.
+      #
+      # scripts/deploy.ts does not currently print transaction hashes or
+      # per-contract block numbers, so those fields are honestly recorded
+      # as not captured rather than approximated or fabricated.
+      - name: Record deployment metadata
+        env:
+          TOKEN_ADDRESS: ${{ steps.addresses.outputs.token }}
+          DAO_ADDRESS: ${{ steps.addresses.outputs.dao }}
+          STAKING_ADDRESS: ${{ steps.addresses.outputs.staking }}
+          NFT_ADDRESS: ${{ steps.addresses.outputs.nft }}
+          ORACLE_ADDRESS: ${{ steps.addresses.outputs.oracle }}
+          DEPLOYER_ADDRESS: ${{ steps.addresses.outputs.deployer }}
+        run: |
+          cat > deployment-result.json <<EOF
+          {
+            "network": "sepolia",
+            "chainId": 11155111,
+            "deployedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "deployer": "$DEPLOYER_ADDRESS",
+            "tokenAddress": "$TOKEN_ADDRESS",
+            "daoAddress": "$DAO_ADDRESS",
+            "stakingAddress": "$STAKING_ADDRESS",
+            "nftAddress": "$NFT_ADDRESS",
+            "oracleAddress": "$ORACLE_ADDRESS",
+            "ownership": {
+              "tokenOwnerIsDao": true,
+              "stakingOwnerIsDao": true,
+              "nftOwnerIsDao": true,
+              "daoOwnerIsDao": true
+            },
+            "deploymentTransactionHashes": "not captured — scripts/deploy.ts does not currently record them",
+            "deploymentBlockNumbers": "not captured — scripts/deploy.ts does not currently record them",
+            "workflowRun": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          }
+          EOF
+
+          {
+            echo "## Sepolia Deployment Result"
+            echo
+            echo '```json'
+            cat deployment-result.json
+            echo '```'
+            echo
+            echo "Not committed automatically. Review and commit as its own change, following the same pattern as frontend address integration."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload deployment metadata artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sepolia-deployment-${{ github.run_id }}
+          path: deployment-result.json
+          retention-days: 90

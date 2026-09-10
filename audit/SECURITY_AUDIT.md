@@ -1,6 +1,6 @@
 # StakeVerse Protocol — Security Audit & Reconciliation
 
-**Status:** Current as of the Step 9 final reconciliation.
+**Status:** Steps 1–9 below are the original security remediation record — current as of the Step 9 final reconciliation and preserved unedited. See "Step 10 — Post-Audit Deployment Reconciliation" for what happened after Step 9: the hardened source was deployed to Sepolia and independently verified on-chain.
 **Scope:** `contracts/StakeVerseToken.sol`, `StakeVerseStaking.sol`, `StakeVerseNFT.sol`, `StakeVerseDAO.sol`, `PriceOracleConsumer.sol`, `scripts/deploy.ts`, and the frontend's governance/staking integration.
 **Method:** A structured, 9-phase incremental remediation and verification process (this document's own history), not an automated third-party tool run — see "A note on prior audit claims" below.
 **Verifiable evidence:** 146/146 passing tests (`npx hardhat test`), 100% line/statement coverage on every production contract (`npx hardhat test --coverage`; raw output in `audit/hardhat_coverage.txt`), zero compiler warnings, clean `tsc -b`/`vite build`/`eslint` on the frontend.
@@ -137,7 +137,7 @@ Distinct from security vulnerabilities — these are places where prose describe
 * The Portuguese scaffold comment in `hardhat.config.ts` remains (cosmetic, no behavioral effect).
 * `PriceOracleConsumer.priceFeed` is write-once but not declared `immutable`.
 * No frontend UI surfaces Staking's `paused()` state, NFT ownership, or any monetary-policy information — none of this was required by any step's scope, and the live staking UI's existing generic error handling already surfaces a pause-triggered revert (just without a specific message).
-* The current, hardened contract source has not been redeployed to Sepolia at the time of this document.
+* The current, hardened contract source has not been redeployed to Sepolia at the time of this document. **(Historical — accurate as of the Step 9 reconciliation. See "Step 10 — Post-Audit Deployment Reconciliation" below: this has since changed.)**
 
 ---
 
@@ -154,7 +154,72 @@ Deployer holds zero administrative authority on any of the four contracts — ev
 
 `deployment/sepolia.json` contains real, syntactically-valid addresses from a deployment that predates this remediation process. It has been annotated with a `status` field rather than deleted or altered, since the addresses themselves are accurate historical data — only their currency relative to today's source was misleading.
 
-No production Sepolia deployment was created, modified, or redeployed at any point during Steps 1–9.
+No production Sepolia deployment was created, modified, or redeployed at any point during Steps 1–9. **This remains true as a description of the Steps 1–9 period itself — it is a historical statement, not a claim about the current state. See "Step 10 — Post-Audit Deployment Reconciliation" immediately below for what happened afterward.**
+
+---
+
+## Step 10 — Post-Audit Deployment Reconciliation
+
+**Status:** Addendum, added after Steps 1–9. Nothing above this section was edited to produce it — no historical finding, severity, or conclusion in Steps 1–9 was altered, weakened, or removed. This section only reconciles the "not yet deployed" statements above (in "Remaining Technical Limitations" and "Deployment / Ownership Status") against an event that happened after they were written.
+**Trigger:** the hardened source reviewed and finalized in Steps 1–9 was subsequently deployed to Ethereum Sepolia through a controlled, confirmation-gated deployment pipeline (`.github/workflows/deploy-sepolia.yml`).
+
+### Historical state vs. current state
+
+**Historical (Steps 1–9):** at the time of the original review, no hardened production Sepolia deployment existed. `deployment/sepolia.json` held only the pre-remediation addresses described in finding L12 above. The two statements this addendum reconciles were both accurate descriptions of that moment and are preserved, unedited, elsewhere in this document as the historical record.
+
+**Current (this addendum):** the hardened source, unchanged since the Step 9 reconciliation, has been deployed to Ethereum Sepolia. `git log -- contracts/` shows no commit touching any `.sol` file between the Step 9 reconciliation and this deployment — the source deployed is the exact source Steps 1–9 reviewed, not a later revision. `deployment/sepolia.json` now carries a second entry, `current`, alongside the original pre-remediation entry (kept as `history`, per Accepted Design Risk #6 above).
+
+### Current deployment
+
+| Field | Value |
+|---|---|
+| Network | Ethereum Sepolia |
+| Chain ID | `11155111` |
+| Deployed | `2026-09-10T01:29:39Z` |
+| Deployer | `0x4Bc5db5a2e45F1a4AD111237baeede1b46746D9e` |
+
+```
+StakeVerseToken:      0xf87d0115aF9Fc668d69c540dD7c27BC032d9Afcd
+StakeVerseDAO:        0x8B555044B4c0A0a91cb0028043004d94291FD01F
+StakeVerseStaking:    0x5EBd1259223CD30D1Ba95298b517F1F59ABBEa64
+StakeVerseNFT:        0xA2C7c2db9Ca89b90994049e74d1Ea3eaB62F286C
+PriceOracleConsumer:  0x5773E1acaE1Bda00caCedC5ebA1653db2C1e749F
+```
+
+Source: `deployment/sepolia.json` → `current`. Transaction hashes and per-contract block numbers are not recorded there — `scripts/deploy.ts` does not currently capture them — and are not invented or approximated here either.
+
+### How the deployment was verified
+
+Deployed via `.github/workflows/deploy-sepolia.yml`, a manually-triggered workflow gated behind an exact confirmation string (`DEPLOY_SEPOLIA`). Independent of `scripts/deploy.ts`'s own internal ownership check (already covered under H4/N1 above), the workflow itself re-verified — directly against the live chain, from a process external to the deploy script — before declaring success:
+* the connected network's chain ID equals `11155111`;
+* deployed bytecode exists at all five addresses;
+* `owner()` on Token, Staking, NFT, and DAO.
+
+```
+Token.owner()   == DAO   ✓ (re-verified on-chain by deploy-sepolia.yml, against the current deployment)
+Staking.owner() == DAO   ✓
+NFT.owner()     == DAO   ✓
+DAO.owner()     == DAO   ✓
+```
+
+This is the same ownership graph already asserted in "Deployment / Ownership Status" above for the local JSON-RPC and test-harness runs; it is now additionally confirmed against the live current Sepolia deployment specifically.
+
+`.github/workflows/ci.yml` re-ran the full regression suite (146/146 passing) against the same commit lineage that produced this deployment, in a clean GitHub Actions environment independent of any local machine — the same evidence cited in this document's header and in "Resolved Security Issues" above, now additionally reproduced in CI rather than only locally.
+
+### Post-Step-9 frontend change (non-security)
+
+One frontend commit occurred after Step 9: it wired `frontend/src/contracts/dao.ts` onto the same centralized `CONTRACTS` address source already used by `token.ts`/`staking.ts`, replacing an independent `import.meta.env.VITE_DAO_ADDRESS` read. Behavior-neutral per its own description — same environment variable, same resolved value, one fewer address-sourcing path to keep in sync. `tsc -b` and `vite build` remained clean after this change. Not a security-relevant change and not a new finding; noted here only for completeness, since "Frontend Status" below describes the state through Step 9 specifically.
+
+### What this addendum does not claim
+
+* **No source-code verification.** `deploy-sepolia.yml` does not run `hardhat-verify`. Blockscout may show only raw bytecode at these addresses, not human-readable source, until verification is performed separately. Not claimed as done anywhere in this document.
+* **No new third-party audit.** This remains a single-agent, structured remediation and reconciliation process (see "A note on prior audit claims" above), not an external audit. No Slither or Mythril tooling was run to produce this addendum, and none is implied to have been.
+* **No contract change.** This addendum reconciles a deployment event, not a code change — see "Historical state vs. current state" above.
+
+### Net effect
+
+**Historical:** during Steps 1–9, no hardened production Sepolia deployment existed.
+**Current:** the hardened source has since been deployed to Sepolia and is live; DAO ownership of `StakeVerseToken`, `StakeVerseStaking`, `StakeVerseNFT`, and `StakeVerseDAO` itself has been independently re-verified on-chain against that specific deployment — not merely asserted by the deploy script, and not merely a carryover of the Steps 1–9 local/test-harness result.
 
 ---
 

@@ -1,8 +1,33 @@
 {
-  "status": "STALE — predates the Steps 1-9 security remediation. The bytecode live at these addresses does NOT match the current contract source in this repository. Not written by scripts/deploy.ts (which only logs addresses to the console); this file was committed separately and was never wired into the deployment tooling. See audit/SECURITY_AUDIT.md and the README's Deployment section for details. Addresses below are left unmodified as a historical record — do not treat them as the current, audited protocol.",
-  "tokenAddress": "0x1695059AE16EA39f66978a63e5199E8BBa7e76C1",
-  "nftAddress": "0x499530539E80b26A573c6C5c0583e4067dcCd836",
-  "stakingAddress": "0xbAd2743efbA270CCB844015C28213932D9e36E33",
-  "daoAddress": "0xE500041A14Bbea0a1aD7AC36b59f99BdAfC80E55",
-  "oracleAddress": "0x0985528C81c29cb268dE13AB7D2eFAb88DCd4A02"
+  "current": {
+    "status": "CURRENT — hardened deployment produced by the Steps 1-9 security remediation and verified via .github/workflows/deploy-sepolia.yml. scripts/deploy.ts's own internal ownership check passed, and the workflow independently re-verified chainId, deployed code at every address, and owner() on Token/Staking/NFT/DAO directly against the live chain (not by trusting the deploy script's own assertion alone). See audit/SECURITY_AUDIT.md for the full remediation record.",
+    "network": "sepolia",
+    "chainId": 11155111,
+    "deployedAt": "2026-09-10T01:29:39Z",
+    "deployer": "0x4Bc5db5a2e45F1a4AD111237baeede1b46746D9e",
+    "tokenAddress": "0xf87d0115aF9Fc668d69c540dD7c27BC032d9Afcd",
+    "daoAddress": "0x8B555044B4c0A0a91cb0028043004d94291FD01F",
+    "stakingAddress": "0x5EBd1259223CD30D1Ba95298b517F1F59ABBEa64",
+    "nftAddress": "0xA2C7c2db9Ca89b90994049e74d1Ea3eaB62F286C",
+    "oracleAddress": "0x5773E1acaE1Bda00caCedC5ebA1653db2C1e749F",
+    "ownership": {
+      "tokenOwnerIsDao": true,
+      "stakingOwnerIsDao": true,
+      "nftOwnerIsDao": true,
+      "daoOwnerIsDao": true
+    },
+    "deploymentTransactionHashes": "not available — scripts/deploy.ts does not currently record them",
+    "deploymentBlockNumbers": "not available — scripts/deploy.ts does not currently record them",
+    "deploymentWorkflowRun": "https://github.com/psatomas/stakeverse-protocol/actions/runs/34425490553"
+  },
+  "history": [
+    {
+      "status": "STALE — predates the Steps 1-9 security remediation. The bytecode live at these addresses does NOT match the current contract source in this repository. Not written by scripts/deploy.ts (which only logs addresses to the console); this file was committed separately and was never wired into the deployment tooling. See audit/SECURITY_AUDIT.md and the README's Deployment section for details. Addresses below are left unmodified as a historical record — do not treat them as the current, audited protocol.",
+      "tokenAddress": "0x1695059AE16EA39f66978a63e5199E8BBa7e76C1",
+      "nftAddress": "0x499530539E80b26A573c6C5c0583e4067dcCd836",
+      "stakingAddress": "0xbAd2743efbA270CCB844015C28213932D9e36E33",
+      "daoAddress": "0xE500041A14Bbea0a1aD7AC36b59f99BdAfC80E55",
+      "oracleAddress": "0x0985528C81c29cb268dE13AB7D2eFAb88DCd4A02"
+    }
+  ]
 }

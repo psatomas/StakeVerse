@@ -7,6 +7,15 @@ type Props = {
 
   loading: boolean;
 
+  /** Live StakeVerseStaking.rewardRate(), as a plain percentage string
+   * (e.g. "5"). null while not yet loaded (no connected wallet, or the
+   * read hasn't resolved yet) — never a fabricated fallback number. */
+  apr: string | null;
+
+  /** Distinct from `loading` above, which tracks an in-flight
+   * approve/stake/claim transaction, not the reward-rate read. */
+  aprLoading: boolean;
+
   onApprove: () => void;
 
   onStake: () => void;
@@ -21,6 +30,8 @@ export default function StakingPanel({
   amount,
   setAmount,
   loading,
+  apr,
+  aprLoading,
   onApprove,
   onStake,
   onClaim,
@@ -36,7 +47,7 @@ export default function StakingPanel({
         </div>
 
         <div className="rounded-sv-sm border border-sv-border-strong px-3 py-1.5 sv-text-technical text-sm">
-          APY 12.4%
+          {aprLoading ? "Loading…" : apr !== null ? `${apr}% APR` : "—"}
         </div>
       </div>
 

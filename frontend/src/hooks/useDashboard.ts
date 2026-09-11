@@ -1,12 +1,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { getTokenBalance } from "../contracts/token";
-import { getPendingRewards, getStakedBalance } from "../contracts/staking";
+import { getPendingRewards, getStakedBalance, getRewardRate } from "../contracts/staking";
 
 // Accept the active wallet address as a parameter
 export function useDashboard(address: string) {
   const [balance, setBalance] = useState("0");
   const [staked, setStaked] = useState("0");
   const [rewards, setRewards] = useState("0");
+  // null (not "0") until a real read succeeds, so the UI can tell "not
+  // loaded yet" apart from a genuine on-chain 0% reward rate.
+  const [rewardRate, setRewardRate] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
@@ -15,14 +18,16 @@ export function useDashboard(address: string) {
 
     try {
       setLoading(true);
-      
+
       const tokenBalance = await getTokenBalance(address);
       const stakedBalance = await getStakedBalance(address);
       const pendingRewards = await getPendingRewards(address);
+      const currentRewardRate = await getRewardRate();
 
       setBalance(tokenBalance);
       setStaked(stakedBalance);
       setRewards(pendingRewards);
+      setRewardRate(currentRewardRate);
     } catch (error) {
       console.error("Failed to load dashboard balances:", error);
     } finally {
@@ -43,6 +48,7 @@ export function useDashboard(address: string) {
     balance,
     staked,
     rewards,
+    rewardRate,
     loading,
     reload: load,
   };

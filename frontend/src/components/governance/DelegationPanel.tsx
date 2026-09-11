@@ -60,7 +60,7 @@ export default function DelegationPanel({
 
       <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
         <div className="rounded-sv-md border border-sv-border p-4">
-          <p className="sv-text-label">Token Balance</p>
+          <p className="sv-text-label">Wallet Balance</p>
           <p className="mt-2 sv-text-technical text-lg">{balance} SVT</p>
         </div>
 

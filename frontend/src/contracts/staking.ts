@@ -85,3 +85,22 @@ export async function getStakedBalance(address: string) {
     return "0.0";
   }
 }
+
+// rewardRate() is a plain contract-level percentage (e.g. 5 meaning
+// "5% APR" — see StakeVerseStaking.sol's `rewardRate`), never an
+// 18-decimal token amount, so this deliberately doesn't run it through
+// formatUnits() the way balances above do. Returns null (not a fabricated
+// "0") on failure, so callers can distinguish "not loaded yet" from a
+// genuine on-chain 0% rate.
+export async function getRewardRate() {
+  try {
+    const contract = await getStakingContract();
+
+    const rate = await contract.rewardRate();
+
+    return rate.toString();
+  } catch (error) {
+    console.error("Error inside getRewardRate service block:", error);
+    return null;
+  }
+}

@@ -19,6 +19,11 @@ export default function Dashboard() {
     balance,
     staked,
     rewards,
+    rewardRate,
+    // Aliased: the local `loading` state below tracks an in-flight
+    // approve/stake/claim transaction, a different thing from whether the
+    // stats (including rewardRate) have finished their initial read.
+    loading: statsLoading,
     reload,
   } = useDashboard(address);
 
@@ -95,6 +100,8 @@ export default function Dashboard() {
             amount={amount}
             setAmount={setAmount}
             loading={loading}
+            apr={rewardRate}
+            aprLoading={statsLoading}
             onApprove={handleApprove}
             onStake={handleStake}
             onClaim={handleClaim}

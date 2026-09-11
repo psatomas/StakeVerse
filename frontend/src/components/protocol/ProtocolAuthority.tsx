@@ -1,5 +1,6 @@
 import SectionShell from "../landing/SectionShell";
 import Callout from "../landing/Callout";
+import { CONTRACTS } from "../../contracts";
 
 type Props = {
   tokenOwner: string | null;
@@ -32,7 +33,15 @@ export default function ProtocolAuthority({
   ];
 
   const allLoaded = owners.every((o) => o.value !== null);
-  const allMatch = allLoaded && owners.every((o) => o.value === owners[0].value);
+  // Equal-to-each-other is necessary but not sufficient: it only proves the
+  // four contracts share a common owner, not that the owner is actually the
+  // DAO. "DAO ownership verified" requires that common owner to be exactly
+  // CONTRACTS.dao — the same canonical address every other DAO read on this
+  // page already resolves through.
+  const allMatch =
+    allLoaded &&
+    owners.every((o) => o.value === owners[0].value) &&
+    owners[0].value === CONTRACTS.dao;
 
   return (
     <SectionShell

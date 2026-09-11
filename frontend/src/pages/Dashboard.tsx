@@ -6,6 +6,7 @@ import GovernancePanel from "../components/governance/GovernancePanel";
 
 import { useWallet } from "../hooks/useWallet";
 import { useDashboard } from "../hooks/useDashboard";
+import { useOracle } from "../hooks/useOracle";
 import { approveTokens } from "../contracts/token";
 import { stakeTokens, claimRewards } from "../contracts/staking";
 
@@ -20,6 +21,12 @@ export default function Dashboard() {
     rewards,
     reload,
   } = useDashboard(address);
+
+  const {
+    price: oraclePrice,
+    loading: oracleLoading,
+    error: oracleError,
+  } = useOracle(address);
 
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
@@ -67,17 +74,20 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div className="sv-surface text-sv-text-primary">
       <Navbar
         address={address}
         connect={connect}
       />
 
-      <main className="relative z-10 mx-auto max-w-7xl space-y-8 px-6 py-10">
+      <main className="relative z-10 mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 sm:py-10">
         <StatsGrid
           balance={balance}
           staked={staked}
           rewards={rewards}
+          oraclePrice={oraclePrice}
+          oracleLoading={oracleLoading}
+          oracleError={oracleError}
         />
 
         <section>

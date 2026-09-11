@@ -11,6 +11,9 @@ interface GovernancePanelProps {
   address: string;
 }
 
+const TRANSITION =
+  "transition-colors duration-[var(--sv-duration-base)] ease-[var(--sv-ease)]";
+
 export default function GovernancePanel({ address }: GovernancePanelProps) {
   // Pass the stateful wallet address straight into the custom hook
   const {
@@ -68,9 +71,9 @@ export default function GovernancePanel({ address }: GovernancePanelProps) {
   // GUEST STATE VIEW: If the wallet isn't connected, hide the panel content and prevent errors
   if (!address) {
     return (
-      <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-8 text-center text-zinc-400">
-        <h2 className="mb-2 text-2xl font-bold text-white">Governance</h2>
-        <p className="text-zinc-500">
+      <div className="rounded-sv-lg border border-sv-border bg-sv-black-900 p-8 text-center">
+        <h2 className="sv-text-h2 mb-2">Governance</h2>
+        <p className="sv-text-body">
           Please connect your MetaMask wallet to Sepolia to view and participate in protocol proposals.
         </p>
       </div>
@@ -93,13 +96,11 @@ export default function GovernancePanel({ address }: GovernancePanelProps) {
         onDelegateTo={handleDelegateTo}
       />
 
-      <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
-        <h2 className="mb-4 text-2xl font-bold text-white">
-          Governance
-        </h2>
+      <div className="rounded-sv-lg border border-sv-border bg-sv-black-900 p-6">
+        <h2 className="sv-text-h2 mb-4">Governance</h2>
 
         {!votingPower.meetsProposalThreshold && (
-          <div className="mb-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm text-yellow-300">
+          <div className="mb-4 rounded-sv-md border border-sv-border-yellow/40 bg-sv-yellow-400/5 p-4 text-sm text-sv-yellow-300">
             You currently have {votingPower.votingPower.toString() === "0" ? "no" : "insufficient"}{" "}
             delegated voting power to create a proposal (threshold:{" "}
             {(votingPower.threshold / 10n ** 18n).toString()} SVT). You can
@@ -108,7 +109,7 @@ export default function GovernancePanel({ address }: GovernancePanelProps) {
         )}
 
         <div className="space-y-4">
-          <div className="flex flex-col gap-4 md:flex-row">
+          <div className="flex flex-col gap-3 md:flex-row">
             <input
               type="text"
               placeholder="Create proposal..."
@@ -116,7 +117,7 @@ export default function GovernancePanel({ address }: GovernancePanelProps) {
               onChange={(e) =>
                 setDescription(e.target.value)
               }
-              className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-white outline-none focus:border-indigo-500 transition"
+              className={`flex-1 rounded-sv-md border border-sv-border-strong bg-sv-black-950 px-4 py-3 text-sv-text-primary outline-none focus:border-sv-orange-500 ${TRANSITION}`}
             />
 
             <input
@@ -125,23 +126,23 @@ export default function GovernancePanel({ address }: GovernancePanelProps) {
               step="0.5"
               value={durationDays}
               onChange={(e) => setDurationDays(e.target.value)}
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-white outline-none focus:border-indigo-500 transition md:w-32"
+              className={`w-full rounded-sv-md border border-sv-border-strong bg-sv-black-950 px-4 py-3 text-sv-text-primary outline-none focus:border-sv-orange-500 md:w-32 ${TRANSITION}`}
               title="Voting duration, in days"
             />
-            <span className="self-center text-sm text-zinc-500">days</span>
+            <span className="self-center sv-text-metadata">days</span>
           </div>
 
           <button
             type="button"
             onClick={() => setShowAdvanced((v) => !v)}
-            className="text-sm text-indigo-400 hover:text-indigo-300"
+            className={`sv-text-label text-sv-orange-400 hover:text-sv-orange-300 ${TRANSITION}`}
           >
             {showAdvanced ? "Hide" : "Show"} on-chain action (target / value / calldata)
           </button>
 
           {showAdvanced && (
-            <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
-              <p className="text-xs text-zinc-500">
+            <div className="space-y-3 rounded-sv-md border border-sv-border bg-sv-black-950 p-4">
+              <p className="sv-text-metadata">
                 Leave target blank for a signaling-only proposal (no on-chain
                 action). If set, the DAO will call this target with this
                 exact value/calldata if the proposal succeeds and is
@@ -153,7 +154,7 @@ export default function GovernancePanel({ address }: GovernancePanelProps) {
                 placeholder="Target address (0x...), optional"
                 value={target}
                 onChange={(e) => setTarget(e.target.value)}
-                className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-3 font-mono text-sm text-white outline-none focus:border-indigo-500 transition"
+                className={`w-full rounded-sv-md border border-sv-border-strong bg-sv-black-900 px-4 py-3 sv-text-identifier text-sm outline-none focus:border-sv-orange-500 ${TRANSITION}`}
               />
 
               <div className="flex gap-3">
@@ -162,14 +163,14 @@ export default function GovernancePanel({ address }: GovernancePanelProps) {
                   placeholder="ETH value (e.g. 0)"
                   value={valueEth}
                   onChange={(e) => setValueEth(e.target.value)}
-                  className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-sm text-white outline-none focus:border-indigo-500 transition"
+                  className={`flex-1 rounded-sv-md border border-sv-border-strong bg-sv-black-900 px-4 py-3 text-sm text-sv-text-primary outline-none focus:border-sv-orange-500 ${TRANSITION}`}
                 />
                 <input
                   type="text"
                   placeholder="Calldata (0x...)"
                   value={data}
                   onChange={(e) => setData(e.target.value)}
-                  className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-3 font-mono text-sm text-white outline-none focus:border-indigo-500 transition"
+                  className={`flex-1 rounded-sv-md border border-sv-border-strong bg-sv-black-900 px-4 py-3 sv-text-identifier text-sm outline-none focus:border-sv-orange-500 ${TRANSITION}`}
                 />
               </div>
 
@@ -192,7 +193,7 @@ export default function GovernancePanel({ address }: GovernancePanelProps) {
           <button
             onClick={handleSubmit}
             disabled={txLoading || !votingPower.meetsProposalThreshold}
-            className="w-full rounded-xl bg-indigo-600 px-6 py-3 font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 md:w-auto"
+            className={`w-full rounded-sv-md border border-sv-orange-500 bg-sv-orange-500 px-6 py-3 font-medium text-sv-black-950 hover:bg-sv-orange-400 disabled:cursor-not-allowed disabled:opacity-50 md:w-auto ${TRANSITION}`}
           >
             {txLoading ? "Processing..." : "Create Proposal"}
           </button>
@@ -200,33 +201,38 @@ export default function GovernancePanel({ address }: GovernancePanelProps) {
       </div>
 
       {loading && (
-        <div className="text-zinc-400 animate-pulse">
+        <div className="sv-text-body animate-pulse">
           Loading proposals from Sepolia...
         </div>
       )}
 
       {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-400">
+        <div className="rounded-sv-md border border-sv-error/40 bg-sv-error/10 p-4 text-sv-error">
           {error}
         </div>
       )}
 
       {!loading && proposals.length === 0 && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6 text-zinc-400">
+        <div className="rounded-sv-md border border-sv-border bg-sv-black-900 p-6 sv-text-body">
           No proposals found.
         </div>
       )}
 
-      <div className="grid gap-6">
-        {proposals.map((proposal) => (
-          <ProposalCard
+      <div className="grid gap-4">
+        {proposals.map((proposal, i) => (
+          <div
             key={proposal.id}
-            proposal={proposal}
-            onVoteYes={voteYes}
-            onVoteNo={voteNo}
-            onExecute={executeProposal}
-            txLoading={txLoading}
-          />
+            className="sv-enter"
+            style={{ animationDelay: `${Math.min(i, 6) * 50}ms` }}
+          >
+            <ProposalCard
+              proposal={proposal}
+              onVoteYes={voteYes}
+              onVoteNo={voteNo}
+              onExecute={executeProposal}
+              txLoading={txLoading}
+            />
+          </div>
         ))}
       </div>
     </div>

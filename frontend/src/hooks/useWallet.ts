@@ -18,9 +18,13 @@ export function useWallet() {
       const currentAddress = await getCurrentAddress();
       setAddress(currentAddress);
       console.log("Wallet connected successfully:", currentAddress);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setError(err.message || "An error occurred during connection.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An error occurred during connection."
+      );
     }
   }
 

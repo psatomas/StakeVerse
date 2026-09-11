@@ -14,6 +14,9 @@ type Props = {
   onClaim: () => void;
 };
 
+const TRANSITION =
+  "transition-colors duration-[var(--sv-duration-base)] ease-[var(--sv-ease)]";
+
 export default function StakingPanel({
   amount,
   setAmount,
@@ -23,29 +26,23 @@ export default function StakingPanel({
   onClaim,
 }: Props) {
   return (
-    <div className="rounded-3xl border border-zinc-800 bg-zinc-900/60 backdrop-blur-xl p-8 shadow-2xl shadow-black/30">
-      <div className="flex items-center justify-between mb-8">
+    <div className="rounded-sv-lg border border-sv-border bg-sv-black-900 p-8">
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold">
-            Staking Dashboard
-          </h2>
-
-          <p className="text-zinc-400 mt-1">
-            Stake SVT and earn
-            protocol rewards.
+          <h2 className="sv-text-h2">Staking Dashboard</h2>
+          <p className="sv-text-body mt-1">
+            Stake SVT and earn protocol rewards.
           </p>
         </div>
 
-        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
+        <div className="rounded-sv-sm border border-sv-border-strong px-3 py-1.5 sv-text-technical text-sm">
           APY 12.4%
         </div>
       </div>
 
       <div className="space-y-6">
         <div>
-          <label className="block text-sm text-zinc-400 mb-2">
-            Stake Amount
-          </label>
+          <label className="sv-text-label mb-2 block">Stake Amount</label>
 
           <input
             type="text"
@@ -56,15 +53,15 @@ export default function StakingPanel({
                 e.target.value
               )
             }
-            className="w-full rounded-2xl border border-zinc-700 bg-zinc-950/80 px-5 py-4 text-lg outline-none focus:border-indigo-500 transition-all"
+            className={`w-full rounded-sv-md border border-sv-border-strong bg-sv-black-950 px-5 py-4 text-lg sv-text-technical outline-none focus:border-sv-orange-500 ${TRANSITION}`}
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <button
             onClick={onApprove}
             disabled={loading}
-            className="rounded-2xl bg-zinc-800 py-4 font-medium hover:bg-zinc-700 transition-all duration-200 disabled:opacity-50"
+            className={`rounded-sv-md border border-sv-border-strong bg-sv-black-850 py-3.5 font-medium text-sv-text-primary hover:border-sv-border-strong hover:bg-sv-black-800 disabled:opacity-50 ${TRANSITION}`}
           >
             {loading
               ? "Loading..."
@@ -74,7 +71,7 @@ export default function StakingPanel({
           <button
             onClick={onStake}
             disabled={loading}
-            className="rounded-2xl bg-indigo-600 py-4 font-medium hover:bg-indigo-500 transition-all duration-200 shadow-lg shadow-indigo-500/20 disabled:opacity-50"
+            className={`rounded-sv-md border border-sv-orange-500 bg-sv-orange-500 py-3.5 font-medium text-sv-black-950 hover:bg-sv-orange-400 disabled:opacity-50 ${TRANSITION}`}
           >
             {loading
               ? "Loading..."
@@ -84,7 +81,7 @@ export default function StakingPanel({
           <button
             onClick={onClaim}
             disabled={loading}
-            className="rounded-2xl bg-emerald-600 py-4 font-medium hover:bg-emerald-500 transition-all duration-200 shadow-lg shadow-emerald-500/20 disabled:opacity-50"
+            className={`rounded-sv-md border border-sv-yellow-400/40 bg-transparent py-3.5 font-medium text-sv-yellow-400 hover:bg-sv-yellow-400/10 disabled:opacity-50 ${TRANSITION}`}
           >
             {loading
               ? "Loading..."

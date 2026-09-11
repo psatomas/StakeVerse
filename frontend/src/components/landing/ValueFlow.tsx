@@ -52,7 +52,7 @@ export default function ValueFlow() {
       {/* A short connector stub ties the invariant visually to the Claim
           step above it — it's the constraint on THAT step, not a separate
           floating note. */}
-      <div aria-hidden="true" className="hidden h-4 justify-end md:mr-[10%] md:flex">
+      <div aria-hidden="true" className="hidden h-4 justify-end xl:mr-[10%] xl:flex">
         <div className="h-full w-px bg-sv-border-orange/40" />
       </div>
       <Callout tone="orange" label="Invariant">

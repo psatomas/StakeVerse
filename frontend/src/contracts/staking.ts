@@ -6,10 +6,14 @@ import {
 } from "ethers";
 
 import { CONTRACTS } from "./index";
-import { getSigner } from "../services/web3";
+import { getSigner, getReadOnlyProvider } from "../services/web3";
 
 // EXACT MATCH FOR YOUR SOLIDITY SMART CONTRACT:
-// We explicitly define the correct method names ('stakedBalance' and 'calculateRewards')
+// We explicitly define the correct method names ('stakedBalance' and 'calculateRewards').
+// totalStaked/rewardReserve/paused/owner were added for the Protocol page's
+// live-state reads — all four are real StakeVerseStaking.sol functions
+// (Ownable's owner(), OZ Pausable's paused(), and the contract's own public
+// state variables), not new/invented ones.
 const STAKING_HUMAN_ABI = [
   "function stake(uint256 amount) external",
   "function unstake(uint256 amount) external",
@@ -17,7 +21,11 @@ const STAKING_HUMAN_ABI = [
   "function calculateRewards(address user) external view returns (uint256)",
   "function stakedBalance(address user) external view returns (uint256)",
   "function stakingTimestamp(address user) external view returns (uint256)",
-  "function rewardRate() external view returns (uint256)"
+  "function rewardRate() external view returns (uint256)",
+  "function totalStaked() external view returns (uint256)",
+  "function rewardReserve() external view returns (uint256)",
+  "function paused() external view returns (bool)",
+  "function owner() external view returns (address)"
 ];
 
 export async function getStakingContract() {
@@ -101,6 +109,66 @@ export async function getRewardRate() {
     return rate.toString();
   } catch (error) {
     console.error("Error inside getRewardRate service block:", error);
+    return null;
+  }
+}
+
+// --- Read-only reads (Protocol page — no connected wallet required) --------
+
+export function getReadOnlyStakingContract() {
+  return new Contract(CONTRACTS.staking, STAKING_HUMAN_ABI, getReadOnlyProvider());
+}
+
+export async function getTotalStaked(): Promise<string | null> {
+  try {
+    const contract = getReadOnlyStakingContract();
+    const total = await contract.totalStaked();
+    return formatUnits(total, 18);
+  } catch (error) {
+    console.error("Error inside getTotalStaked service block:", error);
+    return null;
+  }
+}
+
+export async function getRewardReserve(): Promise<string | null> {
+  try {
+    const contract = getReadOnlyStakingContract();
+    const reserve = await contract.rewardReserve();
+    return formatUnits(reserve, 18);
+  } catch (error) {
+    console.error("Error inside getRewardReserve service block:", error);
+    return null;
+  }
+}
+
+// Same plain-percentage caveat as getRewardRate() above — no formatUnits.
+export async function getRewardRateReadOnly(): Promise<string | null> {
+  try {
+    const contract = getReadOnlyStakingContract();
+    const rate = await contract.rewardRate();
+    return rate.toString();
+  } catch (error) {
+    console.error("Error inside getRewardRateReadOnly service block:", error);
+    return null;
+  }
+}
+
+export async function getStakingPaused(): Promise<boolean | null> {
+  try {
+    const contract = getReadOnlyStakingContract();
+    return await contract.paused();
+  } catch (error) {
+    console.error("Error inside getStakingPaused service block:", error);
+    return null;
+  }
+}
+
+export async function getStakingOwner(): Promise<string | null> {
+  try {
+    const contract = getReadOnlyStakingContract();
+    return await contract.owner();
+  } catch (error) {
+    console.error("Error inside getStakingOwner service block:", error);
     return null;
   }
 }

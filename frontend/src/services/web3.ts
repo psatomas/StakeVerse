@@ -1,5 +1,5 @@
 // frontend/src/services/web3.ts
-import { BrowserProvider } from "ethers";
+import { BrowserProvider, JsonRpcProvider } from "ethers";
 import { logWalletDebug } from "./walletDebug"; // Import your standalone debugger
 
 let provider: BrowserProvider | null = null;
@@ -107,4 +107,44 @@ export async function getSigner() {
 export async function getCurrentAddress() {
   const signer = await getSigner();
   return await signer.getAddress();
+}
+
+// --- Read-only provider (no wallet required) -------------------------------
+//
+// Everything above this line exists to talk to an injected wallet
+// (window.ethereum) and requires a user to connect one — that's the App's
+// interaction surface. The Protocol page's premise is different: a visitor
+// should be able to inspect live chain state without connecting anything.
+// This is the app's first read-only path; it does not touch, wrap, or
+// replace `provider`/`getSigner()` above, which remain exactly as they were
+// for every existing signer-gated call site.
+//
+// A public RPC endpoint (same one validated during the dashboard audit),
+// hardcoded rather than made configurable — this repo has no existing
+// pattern for a frontend-side RPC-URL env var, and one endpoint is all the
+// Protocol page needs.
+const READ_ONLY_RPC_URL = "https://ethereum-sepolia-rpc.publicnode.com";
+
+let readOnlyProvider: JsonRpcProvider | null = null;
+
+export function getReadOnlyProvider(): JsonRpcProvider {
+  if (!readOnlyProvider) {
+    readOnlyProvider = new JsonRpcProvider(READ_ONLY_RPC_URL);
+  }
+  return readOnlyProvider;
+}
+
+/// Confirms whether bytecode actually exists at `address` on the live
+/// chain — i.e. that a contract is genuinely deployed there, not merely
+/// that the address string is well-formed. Returns null (never a
+/// fabricated true/false) if the read itself fails, so a network hiccup
+/// can never be displayed as "not deployed".
+export async function hasDeployedCode(address: string): Promise<boolean | null> {
+  try {
+    const code = await getReadOnlyProvider().getCode(address);
+    return code !== "0x";
+  } catch (error) {
+    console.error("Error inside hasDeployedCode service block:", error);
+    return null;
+  }
 }

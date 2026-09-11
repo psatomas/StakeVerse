@@ -3,7 +3,7 @@ import { Contract, formatEther, parseEther, ZeroAddress } from "ethers";
 import DAO_ARTIFACT from "./abis/StakeVerseDAO.json";
 
 import { CONTRACTS } from "./index";
-import { getSigner } from "../services/web3";
+import { getSigner, getReadOnlyProvider } from "../services/web3";
 
 const DAO_ADDRESS = CONTRACTS.dao;
 
@@ -246,4 +246,77 @@ export async function getProposalCreator(
 
 export function formatEth(value: bigint): string {
   return formatEther(value);
+}
+
+// --- Read-only reads (Protocol page — no connected wallet required) --------
+//
+// Same ABI, same `toProposal` shaping logic as the signer-based reads
+// above — only the contract's runner differs (a read-only provider instead
+// of a connected signer), so a proposal read here can never drift out of
+// sync with what the App itself would show once connected.
+
+export function getReadOnlyDAOContract() {
+  return new Contract(DAO_ADDRESS, DAO_ARTIFACT.abi, getReadOnlyProvider());
+}
+
+export async function getProposalThresholdReadOnly(): Promise<bigint | null> {
+  try {
+    const contract = getReadOnlyDAOContract();
+    return await contract.proposalThreshold();
+  } catch (error) {
+    console.error("Error inside getProposalThresholdReadOnly service block:", error);
+    return null;
+  }
+}
+
+export async function getQuorumNumeratorReadOnly(): Promise<bigint | null> {
+  try {
+    const contract = getReadOnlyDAOContract();
+    return await contract.quorumNumerator();
+  } catch (error) {
+    console.error("Error inside getQuorumNumeratorReadOnly service block:", error);
+    return null;
+  }
+}
+
+export async function getProposalCountReadOnly(): Promise<number | null> {
+  try {
+    const contract = getReadOnlyDAOContract();
+    return Number(await contract.proposalCount());
+  } catch (error) {
+    console.error("Error inside getProposalCountReadOnly service block:", error);
+    return null;
+  }
+}
+
+export async function getDaoOwner(): Promise<string | null> {
+  try {
+    const contract = getReadOnlyDAOContract();
+    return await contract.owner();
+  } catch (error) {
+    console.error("Error inside getDaoOwner service block:", error);
+    return null;
+  }
+}
+
+export async function getAllProposalsReadOnly(): Promise<Proposal[] | null> {
+  try {
+    const contract = getReadOnlyDAOContract();
+
+    const proposalCount = Number(await contract.proposalCount());
+
+    const ids = Array.from({ length: proposalCount }, (_, i) => i + 1);
+
+    const proposals = await Promise.all(
+      ids.map(async (id) => {
+        const raw = await contract.getProposal(id);
+        return toProposal(contract, raw);
+      })
+    );
+
+    return proposals.reverse();
+  } catch (error) {
+    console.error("Error inside getAllProposalsReadOnly service block:", error);
+    return null;
+  }
 }

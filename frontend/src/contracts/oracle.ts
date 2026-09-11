@@ -4,7 +4,7 @@ import oracleAbi from "./abis/PriceOracleConsumer.json";
 
 import { CONTRACTS } from "./index";
 
-import { getSigner } from "../services/web3";
+import { getSigner, getReadOnlyProvider } from "../services/web3";
 
 // PriceOracleConsumer.getLatestETHPrice() returns the Chainlink feed's raw
 // `answer`, unscaled (see contracts/PriceOracleConsumer.sol) — the contract
@@ -29,4 +29,21 @@ export async function getLatestEthPrice(): Promise<string> {
   const answer = await contract.getLatestETHPrice();
 
   return formatUnits(answer, ETH_USD_FEED_DECIMALS);
+}
+
+// --- Read-only read (Protocol page — no connected wallet required) --------
+
+export function getReadOnlyOracleContract() {
+  return new Contract(CONTRACTS.oracle, oracleAbi.abi, getReadOnlyProvider());
+}
+
+export async function getLatestEthPriceReadOnly(): Promise<string | null> {
+  try {
+    const contract = getReadOnlyOracleContract();
+    const answer = await contract.getLatestETHPrice();
+    return formatUnits(answer, ETH_USD_FEED_DECIMALS);
+  } catch (error) {
+    console.error("Error inside getLatestEthPriceReadOnly service block:", error);
+    return null;
+  }
 }

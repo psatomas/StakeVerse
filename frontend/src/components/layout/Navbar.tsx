@@ -19,12 +19,20 @@ export default function Navbar({
           </span>
 
           <div className="min-w-0">
-            <a
-              href="#"
-              className="sv-text-label mb-0.5 inline-block text-sv-text-muted transition-colors duration-[var(--sv-duration-base)] ease-[var(--sv-ease)] hover:text-sv-orange-400"
-            >
-              ← Overview
-            </a>
+            <div className="mb-0.5 flex items-center gap-3">
+              <a
+                href="#"
+                className="sv-text-label inline-block text-sv-text-muted transition-colors duration-[var(--sv-duration-base)] ease-[var(--sv-ease)] hover:text-sv-orange-400"
+              >
+                ← Overview
+              </a>
+              <a
+                href="#protocol"
+                className="sv-text-label inline-block text-sv-text-muted transition-colors duration-[var(--sv-duration-base)] ease-[var(--sv-ease)] hover:text-sv-orange-400"
+              >
+                Protocol
+              </a>
+            </div>
             <h1 className="sv-text-h1 text-sv-text-primary">
               StakeVerse Protocol
             </h1>

@@ -40,6 +40,13 @@ export default function LandingNav() {
         </nav>
 
         <a
+          href="#protocol"
+          className="shrink-0 whitespace-nowrap rounded-sv-md border border-sv-border-strong px-4 py-1.5 text-sm font-medium text-sv-text-primary transition-colors duration-[var(--sv-duration-base)] ease-[var(--sv-ease)] hover:border-sv-orange-500 hover:text-sv-orange-400"
+        >
+          Protocol
+        </a>
+
+        <a
           href="#app"
           className="shrink-0 whitespace-nowrap rounded-sv-md border border-sv-orange-500 bg-sv-orange-500/10 px-4 py-1.5 text-sm font-medium text-sv-orange-400 transition-colors duration-[var(--sv-duration-base)] ease-[var(--sv-ease)] hover:bg-sv-orange-500/20"
         >

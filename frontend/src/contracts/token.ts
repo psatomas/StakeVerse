@@ -9,7 +9,7 @@ import tokenAbi from "./abis/StakeVerseToken.json";
 
 import { CONTRACTS } from "./index";
 
-import { getSigner } from "../services/web3";
+import { getSigner, getReadOnlyProvider } from "../services/web3";
 
 export async function getTokenContract() {
   const signer = await getSigner();
@@ -19,6 +19,33 @@ export async function getTokenContract() {
     tokenAbi.abi,
     signer
   );
+}
+
+// --- Read-only reads (Protocol page — no connected wallet required) --------
+
+export function getReadOnlyTokenContract() {
+  return new Contract(CONTRACTS.token, tokenAbi.abi, getReadOnlyProvider());
+}
+
+export async function getTotalSupply(): Promise<string | null> {
+  try {
+    const contract = getReadOnlyTokenContract();
+    const supply = await contract.totalSupply();
+    return formatUnits(supply, 18);
+  } catch (error) {
+    console.error("Error inside getTotalSupply service block:", error);
+    return null;
+  }
+}
+
+export async function getTokenOwner(): Promise<string | null> {
+  try {
+    const contract = getReadOnlyTokenContract();
+    return await contract.owner();
+  } catch (error) {
+    console.error("Error inside getTokenOwner service block:", error);
+    return null;
+  }
 }
 
 export async function getTokenBalance(

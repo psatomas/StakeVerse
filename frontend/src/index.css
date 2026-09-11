@@ -1,1 +1,297 @@
 @import "tailwindcss";
+
+/* ==========================================================================
+   StakeVerse design tokens
+   ==========================================================================
+   Tailwind v4 is CSS-first: everything declared inside @theme becomes a
+   real utility class (bg-sv-black-950, text-sv-orange-500, border-sv-border,
+   rounded-sv-md, font-mono, ...). Values that are not meant to drive
+   Tailwind's utility generator (motion timing, easing) live as plain custom
+   properties on :root instead and are consumed via arbitrary-value syntax,
+   e.g. `duration-[var(--sv-duration-base)]`.
+
+   Palette semantics (see /audit or README for the product-level rationale):
+     BLACK  = structure — the dominant surface language.
+     ORANGE = protocol identity / activity — primary actions, active state.
+     YELLOW = signal — scarce, reserved for things that need attention.
+   ========================================================================== */
+
+@theme {
+  /* --- Typography -------------------------------------------------------- */
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo,
+    Consolas, monospace;
+
+  /* --- Backgrounds / tonal surfaces --------------------------------------- */
+  --color-sv-black-950: #070707;
+  --color-sv-black-900: #0b0b0b;
+  --color-sv-black-850: #111111;
+  --color-sv-black-800: #171717;
+  --color-sv-black-750: #1d1d1b;
+
+  /* --- Orange: brand / protocol identity ---------------------------------- */
+  --color-sv-orange-700: #b94718;
+  --color-sv-orange-600: #d95720;
+  --color-sv-orange-500: #f26a2e;
+  --color-sv-orange-400: #ff7a3d;
+
+  /* --- Yellow: signal, used sparingly -------------------------------------- */
+  --color-sv-yellow-500: #dfae32;
+  --color-sv-yellow-400: #f4c95d;
+  --color-sv-yellow-300: #f7d978;
+
+  /* --- Text ---------------------------------------------------------------- */
+  --color-sv-text-primary: #f3f1ec;
+  --color-sv-text-secondary: #a6a39c;
+  --color-sv-text-muted: #706e69;
+  --color-sv-text-technical: #c9c5bb;
+
+  /* --- Borders --------------------------------------------------------------- */
+  --color-sv-border: #292927;
+  --color-sv-border-strong: #3a3935;
+  --color-sv-border-orange: #f26a2e;
+  --color-sv-border-yellow: #f4c95d;
+
+  /* --- Semantic (kept subordinate to the brand palette) ----------------------- */
+  --color-sv-success: #69b88a;
+  --color-sv-warning: #f4c95d;
+  --color-sv-error: #d95c5c;
+  --color-sv-info: #8c9fb3;
+
+  /* --- Geometry: modest, engineered corner radii ------------------------------ */
+  --radius-sv-sm: 4px;
+  --radius-sv-md: 6px;
+  --radius-sv-lg: 10px;
+}
+
+:root {
+  /* --- Motion scale: consistent timing + one shared easing curve ------------- */
+  --sv-duration-fast: 120ms;
+  --sv-duration-base: 220ms;
+  --sv-duration-medium: 360ms;
+  --sv-duration-slow: 700ms;
+  --sv-duration-ambient: 6000ms;
+  --sv-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Background-only technical tokens: kept intentionally faint, not part of
+     the foreground palette above. */
+  --sv-grid-line: rgba(243, 241, 236, 0.035);
+  --sv-glow-orange: rgba(242, 106, 46, 0.12);
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+html {
+  color-scheme: dark;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  background: var(--color-sv-black-950);
+  color: var(--color-sv-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-sv-orange-500);
+  color: var(--color-sv-black-950);
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-sv-orange-500);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Typography scale
+   ==========================================================================
+   Semantic type classes so hierarchy comes from typography first, not from
+   stacking cards/shadows/gradients. Numeric protocol values (balances,
+   vote counts, prices, addresses, hashes) get the technical/mono treatment.
+   ========================================================================== */
+
+@layer components {
+  .sv-text-display {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    font-size: 2.75rem;
+  }
+
+  .sv-text-h1 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+    font-size: 1.75rem;
+  }
+
+  .sv-text-h2 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    font-size: 1.375rem;
+  }
+
+  .sv-text-h3 {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    line-height: 1.3;
+    font-size: 1.0625rem;
+  }
+
+  .sv-text-body {
+    font-family: var(--font-sans);
+    font-weight: 400;
+    line-height: 1.55;
+    font-size: 0.9375rem;
+    color: var(--color-sv-text-secondary);
+  }
+
+  /* Numeric protocol values: balances, staked amounts, vote tallies, prices. */
+  .sv-text-technical {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    color: var(--color-sv-text-technical);
+  }
+
+  /* Addresses, hashes, chain ids, calldata. */
+  .sv-text-identifier {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    letter-spacing: -0.01em;
+    color: var(--color-sv-text-technical);
+  }
+
+  .sv-text-metadata {
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    color: var(--color-sv-text-muted);
+  }
+
+  .sv-text-label {
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-sv-text-muted);
+  }
+}
+
+/* ==========================================================================
+   Surface: the ambient protocol background
+   ==========================================================================
+   One dominant black plane, an extremely faint technical grid, and a single
+   restrained orange atmosphere at the top of the viewport. No blobs, no
+   particle/star fields, no purple/blue web3 gradients.
+   ========================================================================== */
+
+@layer components {
+  .sv-surface {
+    position: relative;
+    min-height: 100vh;
+    background-color: var(--color-sv-black-950);
+    background-image:
+      radial-gradient(
+        ellipse 70% 45% at 50% -12%,
+        var(--sv-glow-orange),
+        transparent 70%
+      ),
+      linear-gradient(to right, var(--sv-grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--sv-grid-line) 1px, transparent 1px);
+    background-size:
+      100% 100%,
+      56px 56px,
+      56px 56px;
+    background-position:
+      center top,
+      center,
+      center;
+  }
+}
+
+/* ==========================================================================
+   Motion primitives — "controlled protocol motion"
+   ==========================================================================
+   Restrained entrance + a shared easing/duration vocabulary. No bouncing,
+   no perpetual floating, no exaggerated scale.
+   ========================================================================== */
+
+@keyframes sv-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sv-signal {
+  0% {
+    box-shadow: 0 0 0 0 rgba(244, 201, 93, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 0 6px rgba(244, 201, 93, 0);
+  }
+}
+
+@layer components {
+  .sv-enter {
+    animation: sv-fade-up var(--sv-duration-medium) var(--sv-ease) both;
+  }
+
+  /* A single, brief yellow pulse for a genuinely important moment (e.g. a
+     proposal newly requiring attention). Not a looping/ambient pulse. */
+  .sv-signal-once {
+    animation: sv-signal var(--sv-duration-slow) var(--sv-ease) 1;
+  }
+
+  /* Scroll-triggered reveal (paired with the useInView hook): unlike
+     .sv-enter, which plays once at mount time regardless of scroll
+     position, this stays hidden until the element's own useInView flips
+     `sv-revealed` on — giving the landing page's long scroll actual
+     entrance rhythm instead of everything having already animated in,
+     off-screen, before the visitor ever scrolls to it. */
+  .sv-reveal {
+    opacity: 0;
+    transform: translateY(14px);
+    transition:
+      opacity var(--sv-duration-slow) var(--sv-ease),
+      transform var(--sv-duration-slow) var(--sv-ease);
+  }
+
+  .sv-reveal.sv-revealed {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sv-enter,
+  .sv-signal-once {
+    animation: none;
+  }
+
+  .sv-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

@@ -63,8 +63,13 @@ export async function validateNetwork() {
         method: "wallet_switchEthereumChain",
         params: [{ chainId: "0xaa36a7" }], 
       });
-    } catch (switchError: any) {
-      if (switchError.code === 4902) {
+    } catch (switchError) {
+      const switchErrorCode =
+        switchError && typeof switchError === "object" && "code" in switchError
+          ? (switchError as Record<string, unknown>).code
+          : undefined;
+
+      if (switchErrorCode === 4902) {
         try {
           await window.ethereum.request({
             method: "wallet_addEthereumChain",
@@ -73,16 +78,22 @@ export async function validateNetwork() {
                 chainId: "0xaa36a7",
                 chainName: "Sepolia Test Network",
                 nativeCurrency: { name: "Sepolia Ether", symbol: "ETH", decimals: 18 },
-                rpcUrls: [], 
+                rpcUrls: [],
                 blockExplorerUrls: ["https://sepolia.etherscan.io"],
               },
             ],
           });
         } catch (addError) {
-          throw new Error("Failed to add Sepolia network to MetaMask configuration.");
+          throw new Error(
+            "Failed to add Sepolia network to MetaMask configuration.",
+            { cause: addError }
+          );
         }
       } else {
-        throw new Error("Please switch your network to Sepolia in MetaMask.");
+        throw new Error(
+          "Please switch your network to Sepolia in MetaMask.",
+          { cause: switchError }
+        );
       }
     }
   }

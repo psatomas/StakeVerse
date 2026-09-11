@@ -13,11 +13,17 @@ interface ProposalCardProps {
   txLoading: boolean;
 }
 
+const TRANSITION =
+  "transition-colors duration-[var(--sv-duration-base)] ease-[var(--sv-ease)]";
+
+// Active = a signal: it needs the viewer's attention, and is the one place
+// yellow earns its scarcity. Succeeded/Executed are semantic + protocol
+// states; Failed is the error semantic.
 const STATE_STYLES: Record<number, string> = {
-  0: "bg-yellow-500/20 text-yellow-400", // Active
-  1: "bg-red-500/20 text-red-400", // Failed
-  2: "bg-emerald-500/20 text-emerald-400", // Succeeded
-  3: "bg-indigo-500/20 text-indigo-400", // Executed
+  0: "border border-sv-border-yellow/50 bg-sv-yellow-400/10 text-sv-yellow-300", // Active
+  1: "border border-sv-error/40 bg-sv-error/10 text-sv-error", // Failed
+  2: "border border-sv-success/40 bg-sv-success/10 text-sv-success", // Succeeded
+  3: "border border-sv-border-orange/40 bg-sv-orange-500/10 text-sv-orange-400", // Executed
 };
 
 function short(addr: string) {
@@ -95,30 +101,31 @@ export default function ProposalCard({
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+    <div className="rounded-sv-lg border border-sv-border bg-sv-black-900 p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-lg font-semibold text-white">
-          Proposal #{proposal.id}
-        </h3>
+        <h3 className="sv-text-h3">Proposal #{proposal.id}</h3>
 
         <span
-          className={`rounded-full px-3 py-1 text-xs font-medium ${
-            STATE_STYLES[proposal.state] ?? "bg-zinc-700 text-zinc-300"
+          className={`rounded-sv-sm px-3 py-1 text-xs font-medium ${
+            STATE_STYLES[proposal.state] ??
+            "border border-sv-border-strong text-sv-text-secondary"
           }`}
         >
           {proposal.stateLabel}
         </span>
       </div>
 
-      <p className="mb-4 text-zinc-300">{proposal.description}</p>
+      <p className="sv-text-body mb-4">{proposal.description}</p>
 
-      <div className="mb-4 text-xs text-zinc-500">
+      <div className="sv-text-metadata mb-4">
         Proposer:{" "}
-        {proposerLoading
-          ? "Loading..."
-          : proposer
-            ? short(proposer)
-            : "Not available on-chain"}
+        {proposerLoading ? (
+          "Loading..."
+        ) : proposer ? (
+          <span className="sv-text-identifier">{short(proposer)}</span>
+        ) : (
+          "Not available on-chain"
+        )}
       </div>
 
       <div className="mb-6">
@@ -129,59 +136,59 @@ export default function ProposalCard({
         />
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-        <div className="rounded-xl bg-zinc-800 p-4">
-          <p className="text-sm text-zinc-400">Yes Votes</p>
-          <p className="text-2xl font-bold text-green-400">
+      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="rounded-sv-md border border-sv-border p-4">
+          <p className="sv-text-label">Yes Votes</p>
+          <p className="mt-1 sv-text-technical text-lg text-sv-success">
             {formatSVT(proposal.yesVotes)}
           </p>
         </div>
 
-        <div className="rounded-xl bg-zinc-800 p-4">
-          <p className="text-sm text-zinc-400">No Votes</p>
-          <p className="text-2xl font-bold text-red-400">
+        <div className="rounded-sv-md border border-sv-border p-4">
+          <p className="sv-text-label">No Votes</p>
+          <p className="mt-1 sv-text-technical text-lg text-sv-error">
             {formatSVT(proposal.noVotes)}
           </p>
         </div>
 
-        <div className="rounded-xl bg-zinc-800 p-4">
-          <p className="text-sm text-zinc-400">Quorum</p>
+        <div className="rounded-sv-md border border-sv-border p-4">
+          <p className="sv-text-label">Quorum</p>
           <p
-            className={`text-lg font-bold ${
-              proposal.quorumReached ? "text-emerald-400" : "text-zinc-300"
+            className={`mt-1 sv-text-technical text-base ${
+              proposal.quorumReached ? "text-sv-success" : "text-sv-text-secondary"
             }`}
           >
             {formatSVT(participation)}
             {quorumThreshold !== null ? ` / ${formatSVT(quorumThreshold)}` : ""}
           </p>
-          <p className="text-xs text-zinc-500">
+          <p className="sv-text-metadata mt-1">
             {proposal.quorumReached ? "Reached" : "Not reached"}
           </p>
         </div>
 
-        <div className="rounded-xl bg-zinc-800 p-4">
-          <p className="text-sm text-zinc-400">Your Voting Power</p>
-          <p className="text-lg font-bold text-indigo-400">
+        <div className="rounded-sv-md border border-sv-border p-4">
+          <p className="sv-text-label">Your Voting Power</p>
+          <p className="mt-1 sv-text-technical text-base text-sv-orange-400">
             {formatSVT(proposal.voterPower)}
           </p>
-          <p className="text-xs text-zinc-500">at this proposal's snapshot</p>
+          <p className="sv-text-metadata mt-1">at this proposal's snapshot</p>
         </div>
       </div>
 
-      <div className="mb-4 text-sm text-zinc-500">
+      <div className="sv-text-metadata mb-4">
         Deadline:{" "}
         {new Date(proposal.deadline * 1000).toLocaleString()}
       </div>
 
       {voteDisabledReason && !proposal.executed && (
-        <p className="mb-3 text-sm text-zinc-500">{voteDisabledReason}</p>
+        <p className="sv-text-metadata mb-3">{voteDisabledReason}</p>
       )}
 
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-3">
         <button
           onClick={() => onVoteYes(proposal.id)}
           disabled={txLoading || !canVote}
-          className="flex-1 rounded-xl bg-green-600 px-4 py-3 font-medium text-white transition hover:bg-green-500 disabled:cursor-not-allowed disabled:opacity-50"
+          className={`flex-1 rounded-sv-md border border-sv-success/40 bg-sv-success/10 px-4 py-3 font-medium text-sv-success hover:bg-sv-success/20 disabled:cursor-not-allowed disabled:opacity-50 ${TRANSITION}`}
         >
           Vote Yes
         </button>
@@ -189,7 +196,7 @@ export default function ProposalCard({
         <button
           onClick={() => onVoteNo(proposal.id)}
           disabled={txLoading || !canVote}
-          className="flex-1 rounded-xl bg-red-600 px-4 py-3 font-medium text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+          className={`flex-1 rounded-sv-md border border-sv-error/40 bg-sv-error/10 px-4 py-3 font-medium text-sv-error hover:bg-sv-error/20 disabled:cursor-not-allowed disabled:opacity-50 ${TRANSITION}`}
         >
           Vote No
         </button>
@@ -202,7 +209,7 @@ export default function ProposalCard({
           <button
             onClick={() => onExecute(proposal.id)}
             disabled={txLoading}
-            className="flex-1 rounded-xl bg-indigo-600 px-4 py-3 font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className={`flex-1 rounded-sv-md border border-sv-orange-500 bg-sv-orange-500 px-4 py-3 font-medium text-sv-black-950 hover:bg-sv-orange-400 disabled:cursor-not-allowed disabled:opacity-50 ${TRANSITION}`}
           >
             Execute
           </button>

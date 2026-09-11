@@ -30,8 +30,12 @@ export function useDashboard(address: string) {
     }
   }, [address]);
 
-  // Automatically fires layout loading when address changes from "" to valid
+  // Automatically fires layout loading when address changes from "" to valid.
+  // Same pre-existing load-on-mount pattern as useGovernance.ts/useVotingPower.ts/
+  // useOracle.ts — see the note there on the codebase-wide
+  // react-hooks/set-state-in-effect gap this mirrors.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [load]);
 

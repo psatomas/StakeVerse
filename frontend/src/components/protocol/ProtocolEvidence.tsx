@@ -3,7 +3,7 @@ import { CONTRACTS } from "../../contracts";
 import type { DeployedCodeState } from "../../hooks/useProtocolState";
 
 const ETHERSCAN_BASE = "https://sepolia.etherscan.io/address/";
-const WORKFLOW_RUN_URL = "https://github.com/psatomas/stakeverse-protocol/actions/runs/34425490553";
+const WORKFLOW_RUN_URL = "https://github.com/psatomas/stakeverse/actions/runs/34425490553";
 
 // Static facts sourced from deployment/sepolia.json's "current" entry and
 // audit/hardhat_coverage.txt — the same figures Overview's Engineering

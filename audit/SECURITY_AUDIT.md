@@ -1,4 +1,4 @@
-# StakeVerse Protocol — Security Audit & Reconciliation
+# StakeVerse — Security Audit & Reconciliation
 
 **Status:** Steps 1–9 below are the original security remediation record — current as of the Step 9 final reconciliation and preserved unedited. See "Step 10 — Post-Audit Deployment Reconciliation" for what happened after Step 9: the hardened source was deployed to Sepolia and independently verified on-chain.
 **Scope:** `contracts/StakeVerseToken.sol`, `StakeVerseStaking.sol`, `StakeVerseNFT.sol`, `StakeVerseDAO.sol`, `PriceOracleConsumer.sol`, `scripts/deploy.ts`, and the frontend's governance/staking integration.

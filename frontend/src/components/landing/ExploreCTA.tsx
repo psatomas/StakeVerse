@@ -1,6 +1,6 @@
 import SectionShell from "./SectionShell";
 
-const REPO_URL = "https://github.com/psatomas/stakeverse-protocol";
+const REPO_URL = "https://github.com/psatomas/stakeverse";
 
 const DEPLOYMENT = [
   { label: "StakeVerseToken", address: "0xf87d0115aF9Fc668d69c540dD7c27BC032d9Afcd" },

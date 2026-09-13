@@ -1,4 +1,4 @@
-# StakeVerse Protocol — MVP
+# StakeVerse — MVP
 
 🌐 **Select Language / Selecione o Idioma:**
 *   [English Version (# English)](#-english)
@@ -12,7 +12,7 @@
 # 🇺🇸 English
 
 ## 📌 About the Project
-The **StakeVerse Protocol** is a decentralized, modular Web3 ecosystem developed as an MVP for the *Complete Web3 Protocol Development with Testnet Deployment* course (Advanced Phase — Unit 1 | Chapter 5).
+The **StakeVerse** is a decentralized, modular Web3 ecosystem developed as an MVP for the *Complete Web3 Protocol Development with Testnet Deployment* course (Advanced Phase — Unit 1 | Chapter 5).
 
 The protocol addresses fragmentation and low participation in DAOs by mitigating opportunity costs through a circular and modular incentive ecosystem:
 *   **Integrated Tokenomics:** Users utilize the native utility token to lock in staking contracts and generate cyclical yields.
@@ -252,7 +252,7 @@ The addresses below were deployed **before** the Steps 1-9 security remediation 
 # 🇧🇷 Português
 
 ## 📌 Sobre o Projeto
-O **StakeVerse Protocol** é um ecossistema Web3 descentralizado e modular desenvolvido como MVP para a disciplina de *Desenvolvimento de Protocolo Web3 Completo com Deploy em Testnet* (Fase 2 Avançada — Unidade 1 | Capítulo 5). 
+O **StakeVerse** é um ecossistema Web3 descentralizado e modular desenvolvido como MVP para a disciplina de *Desenvolvimento de Protocolo Web3 Completo com Deploy em Testnet* (Fase 2 Avançada — Unidade 1 | Capítulo 5). 
 
 O protocolo resolve o problema da fragmentação e da baixa participação em DAOs ao mitigar o custo de oportunidade por meio de um ecossistema de incentivos circular e modular:
 *   **Tokenomics Integrado:** Usuários utilizam o token utilitário nativo para travar em contratos de staking e gerar rendimento cíclico.

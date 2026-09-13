@@ -1,7 +1,7 @@
 import SectionShell from "../landing/SectionShell";
 import { CONTRACTS } from "../../contracts";
 
-const REPO_URL = "https://github.com/psatomas/stakeverse-protocol";
+const REPO_URL = "https://github.com/psatomas/stakeverse";
 
 // Contract name labels aren't available from CONTRACTS itself (just
 // addresses), but the addresses themselves come straight from it — the

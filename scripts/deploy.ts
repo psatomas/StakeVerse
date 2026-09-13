@@ -5,7 +5,7 @@ import "dotenv/config";
 const SEPOLIA_CHAIN_ID = 11155111n;
 
 async function main() {
-  console.log("🚀 Deploying StakeVerse Protocol (governance-owned mode)\n");
+  console.log("🚀 Deploying StakeVerse (governance-owned mode)\n");
 
   // Fail loudly and immediately on missing configuration, rather than
   // letting ethers silently substitute defaults. Most notably:

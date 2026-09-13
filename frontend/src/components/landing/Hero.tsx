@@ -61,7 +61,7 @@ export default function Hero() {
     <section id="identity" className="scroll-mt-24 pt-6 sm:pt-10">
       <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-[1.2fr_1fr] lg:gap-16">
         <div>
-          <p className="sv-text-label text-sv-orange-400">StakeVerse Protocol</p>
+          <p className="sv-text-label text-sv-orange-400">StakeVerse</p>
 
           <h1 className="sv-text-display mt-4 text-4xl sm:text-5xl lg:text-6xl">
             Security-Hardened Governance

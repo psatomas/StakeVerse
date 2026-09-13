@@ -56,7 +56,7 @@ export default function Protocol() {
       <footer className="relative z-10 border-t border-sv-border">
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
           <p className="sv-text-metadata">
-            StakeVerse Protocol — live chain state, read without a wallet. See the{" "}
+            StakeVerse — live chain state, read without a wallet. See the{" "}
             <a href="#app" className="text-sv-orange-400 hover:text-sv-orange-300">
               application
             </a>{" "}

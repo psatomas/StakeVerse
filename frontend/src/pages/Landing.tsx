@@ -59,7 +59,7 @@ export default function Landing() {
       <footer className="relative z-10 border-t border-sv-border">
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
           <p className="sv-text-metadata">
-            StakeVerse Protocol — explanation, not a dashboard. See the{" "}
+            StakeVerse — explanation, not a dashboard. See the{" "}
             <a href="#app" className="text-sv-orange-400 hover:text-sv-orange-300">
               application
             </a>{" "}

@@ -18,7 +18,7 @@
     },
     "deploymentTransactionHashes": "not available — scripts/deploy.ts does not currently record them",
     "deploymentBlockNumbers": "not available — scripts/deploy.ts does not currently record them",
-    "deploymentWorkflowRun": "https://github.com/psatomas/stakeverse-protocol/actions/runs/34425490553"
+    "deploymentWorkflowRun": "https://github.com/psatomas/stakeverse/actions/runs/34425490553"
   },
   "history": [
     {

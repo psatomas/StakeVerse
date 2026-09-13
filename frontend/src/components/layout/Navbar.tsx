@@ -34,7 +34,7 @@ export default function Navbar({
               </a>
             </div>
             <h1 className="sv-text-h1 text-sv-text-primary">
-              StakeVerse Protocol
+              StakeVerse
             </h1>
             <p className="sv-text-metadata mt-0.5">
               Decentralized Staking &amp; Governance Infrastructure
